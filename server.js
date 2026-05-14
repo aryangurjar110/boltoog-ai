@@ -34,7 +34,10 @@ app.post('/chat', async (req, res) => {
         // Use the SDK to generate content
         const result = await model.generateContent(message);
         const response = await result.response;
-        const text = response.text();
+        let text = response.text();
+        
+        // Strip out any markdown formatting symbols that might leak through
+        text = text.replace(/[*_`#]/g, '');
 
         res.json({ response: text });
     } catch (error) {
