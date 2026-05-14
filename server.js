@@ -8,68 +8,45 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const PORT = process.env.PORT || 5030;
-const API_KEY = process.env.GEMINI_API_KEY;
-
-// Initialize Google Generative AI
-const genAI = new GoogleGenerativeAI(API_KEY);
-const model = genAI.getGenerativeModel({ 
-    model: "gemini-1.5-flash-latest",
-    systemInstruction: "You are Boltoog, a helpful AI created by Aryan. Always be polite and concise. Provide all responses in strictly plain text only. Do NOT use any Markdown formatting whatsoever — no bold (**), no italics (*), no headers (#), no bullet points (-), no numbered lists, no code blocks, no links, and no special formatting of any kind. Just plain text sentences and paragraphs.",
-    generationConfig: {
-        responseMimeType: "text/plain"
-    }
-});
-
-// ---- API Routes ----
-
+// Move AI logic INSIDE the route to prevent "Cold Start" errors
 app.post('/chat', async (req, res) => {
     const { message } = req.body;
-    
-    if (!message) {
-        return res.status(400).json({ error: "Message is required" });
-    }
+    const KEY = process.env.GEMINI_API_KEY;
+
+    if (!message) return res.status(400).json({ error: "Message is required" });
+    if (!KEY) return res.status(500).json({ error: "API Key missing in Vercel Settings" });
 
     try {
-        // Use the SDK to generate content
+        const genAI = new GoogleGenerativeAI(KEY);
+        const model = genAI.getGenerativeModel({ 
+            model: "gemini-1.5-flash",
+            systemInstruction: "You are Boltoog, a helpful AI created by Aryan. Plain text only."
+        });
+
+        // Set a shorter timeout for the safety of the serverless function
         const result = await model.generateContent(message);
         const response = await result.response;
-        let text = response.text();
-        
-        // Strip out any markdown formatting symbols that might leak through
-        text = text.replace(/[*_`#]/g, '');
+        const text = response.text().replace(/[*_`#]/g, '');
 
         res.json({ response: text });
     } catch (error) {
-        console.error('Gemini API Error:', error);
-        
-        // Provide more specific error details if available
-        let errorMessage = "AI Error";
-        if (error.message && error.message.includes("API key")) {
-            errorMessage = "Invalid API Key";
-        } else if (error.message && error.message.includes("rate limit")) {
-            errorMessage = "Rate limit exceeded. Please try again later.";
-        }
-
+        console.error('Detailed Error:', error);
         res.status(500).json({ 
-            error: errorMessage, 
+            error: "AI Error", 
             details: error.message 
         });
     }
 });
 
-// ---- Static files & catch-all ----
-
+// Serve static files
 app.use(express.static(path.join(__dirname)));
-
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Start server if not running as a serverless function
+const PORT = process.env.PORT || 5030;
 if (require.main === module) {
-    app.listen(PORT, () => console.log(`🚀 Server is LIVE on http://localhost:${PORT}`));
+    app.listen(PORT, () => console.log(`🚀 Server on http://localhost:${PORT}`));
 }
 
-// Export for Vercel serverless
 module.exports = app;
