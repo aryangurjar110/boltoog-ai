@@ -7,9 +7,9 @@ async function list() {
   const result = await genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" }).listModels();
   // Wait, the SDK has a different way to list models.
   // Actually, let's just try to fetch a simple response with gemini-pro.
-  console.log("Testing gemini-1.5-flash...");
+  console.log("Testing gemini-1.5-flash-latest...");
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
     const res = await model.generateContent("hi");
     console.log("Success with 1.5-flash:", res.response.text());
   } catch (e) {
