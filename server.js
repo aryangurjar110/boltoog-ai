@@ -50,3 +50,16 @@ if (require.main === module) {
 }
 
 module.exports = app;
+app.post('/chat', async (req, res) => {
+    // DEBUG LOGS
+    console.log("Checking Environment Variable...");
+    const keyExists = !!process.env.GEMINI_API_KEY;
+    const keyLength = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.length : 0;
+    
+    console.log(`Key Found: ${keyExists}`);
+    console.log(`Key Length: ${keyLength}`);
+    
+    if (!keyExists || keyLength < 10) {
+        return res.status(500).json({ error: "System Error: API Key is invalid or missing in Vercel." });
+    }
+    // ... rest of your code
