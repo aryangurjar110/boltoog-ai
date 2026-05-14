@@ -14,7 +14,7 @@ const API_KEY = process.env.GEMINI_API_KEY;
 // Initialize Google Generative AI
 const genAI = new GoogleGenerativeAI(API_KEY);
 const model = genAI.getGenerativeModel({ 
-    model: "gemini-1.5-flash",
+    model: "gemini-2.5-flash",
     systemInstruction: "You are Boltoog, a helpful AI created by Aryan. Always be polite and concise. Provide all responses in strictly plain text only. Do NOT use any Markdown formatting whatsoever — no bold (**), no italics (*), no headers (#), no bullet points (-), no numbered lists, no code blocks, no links, and no special formatting of any kind. Just plain text sentences and paragraphs.",
     generationConfig: {
         responseMimeType: "text/plain"
