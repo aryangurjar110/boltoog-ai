@@ -4,7 +4,7 @@ require('dotenv').config();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 async function list() {
-  const result = await genAI.getGenerativeModel({ model: "gemini-1.5-flash" }).listModels();
+  const result = await genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" }).listModels();
   // Wait, the SDK has a different way to list models.
   // Actually, let's just try to fetch a simple response with gemini-pro.
   console.log("Testing gemini-1.5-flash...");
