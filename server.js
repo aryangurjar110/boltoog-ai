@@ -19,7 +19,7 @@ app.post('/chat', async (req, res) => {
     try {
         const genAI = new GoogleGenerativeAI(KEY);
         const model = genAI.getGenerativeModel({ 
-            model: "gemini-1.5-flash",
+            model: "gemini-1.5-flash-latest",
             systemInstruction: "You are Boltoog, a helpful AI created by Aryan. Plain text only."
         });
 
