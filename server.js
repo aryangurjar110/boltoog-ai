@@ -25,7 +25,7 @@ app.post('/chat', async (req, res) => {
         
         // Use gemini-pro if gemini-1.5-flash gives a 404
         const model = genAI.getGenerativeModel({ 
-            model: "gemini-pro", 
+            model: "gemini-1.5-flash", 
             systemInstruction: "You are Boltoog, a helpful AI created by Aryan. Plain text only."
         });
 
