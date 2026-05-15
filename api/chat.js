@@ -1,5 +1,5 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
- 
+
 module.exports = async (req, res) => {
     // Set CORS headers
     res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -9,65 +9,67 @@ module.exports = async (req, res) => {
         'Access-Control-Allow-Headers',
         'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
     );
- 
+
     // Handle OPTIONS request
     if (req.method === 'OPTIONS') {
         res.status(200).end();
         return;
     }
- 
+
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
- 
+
     const { message } = req.body;
     const KEY = process.env.GEMINI_API_KEY;
- 
-    // Debugging logs
-    console.log("Request received. Key Length:", KEY ? KEY.length : 0);
- 
+
     if (!message) {
         return res.status(400).json({ error: "Message is required" });
     }
- 
+
     if (!KEY || KEY.length < 10) {
         return res.status(500).json({ 
             error: "API Key missing or invalid", 
             details: "Please set GEMINI_API_KEY in Vercel environment variables" 
         });
     }
- 
+
     try {
         const genAI = new GoogleGenerativeAI(KEY);
         
-        // Use gemini-1.5-flash for better performance
-        const model = genAI.getGenerativeModel({ 
-            model: "gemini-1.5-flash", 
-            systemInstruction: "You are Boltoog, a helpful AI created by Aryan. Provide concise, helpful responses in plain text only."
-        });
- 
-        const result = await model.generateContent(message);
-        const response = result.response;
-        
-        // Check if response exists and has text
-        if (!response || !response.text) {
-            return res.status(500).json({ 
-                error: "AI Error", 
-                details: "No response text generated from Gemini API" 
-            });
+        const modelsToTry = ["gemini-1.5-flash-latest", "gemini-1.5-flash", "gemini-pro"];
+        let responseText = "";
+        let errorDetails = "";
+
+        for (const modelName of modelsToTry) {
+            try {
+                const model = genAI.getGenerativeModel({ 
+                    model: modelName, 
+                    systemInstruction: "You are Boltoog, a helpful AI created by Aryan. Your responses must be in plain text only. No markdown."
+                });
+
+                const result = await model.generateContent(message);
+                const response = await result.response;
+                responseText = response.text();
+                
+                if (responseText) break;
+            } catch (e) {
+                errorDetails += `${modelName}: ${e.message}; `;
+            }
         }
-        
-        // Remove markdown formatting for cleaner text
-        const text = response.text().replace(/[*_`#]/g, '');
- 
-        res.status(200).json({ response: text });
+
+        if (!responseText) {
+            throw new Error("All models failed. Details: " + errorDetails);
+        }
+
+        const text = responseText.replace(/[*_`#]/g, '');
+
+        res.status(200).json({ response: text, v: "2.0" });
     } catch (error) {
-        console.error('Gemini API Error:', error.message);
-        console.error('Full error:', error);
-        
+        console.error('Final Gemini API Error:', error);
         res.status(500).json({ 
             error: "AI Error", 
-            details: error.message 
+            details: error.message
         });
     }
 };
