@@ -224,10 +224,10 @@
       width:40px; height:40px; border-radius:12px; border:none;
       background:var(--accent-deep); color:#fff;
       display:flex; align-items:center; justify-content:center;
-      cursor:pointer; opacity:0.4; pointer-events:none;
+      cursor:pointer; opacity:0.3;
       transition:all 0.2s var(--ease);
     }
-    .send-btn.active { opacity:1; pointer-events:auto; }
+    .send-btn.active { opacity:1; }
 
     @media (max-width: 768px) {
       .sidebar {
@@ -320,9 +320,16 @@
       session = currentSession;
       localStorage.setItem('boltoog_session', JSON.stringify(session));
     }
+
+    async function init() {
+      await checkAuth();
+      if (session) {
+        loadHistory();
+      }
+    }
     
-    // Run auth check immediately
-    checkAuth();
+    // Start the app properly
+    init();
 
     async function signOut() {
       await supabaseClient.auth.signOut();
@@ -507,8 +514,6 @@
     msgInput.onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } };
     sendBtn.onclick = send;
 
-    // Initial load
-    loadHistory();
   </script>
 </body>
 </html>
