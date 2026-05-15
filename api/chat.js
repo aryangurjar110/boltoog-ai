@@ -72,18 +72,66 @@ module.exports = async (req, res) => {
 Be helpful, concise, and warm. Give thoughtful answers.
 Write in plain text only - absolutely no markdown, no asterisks, no bullet symbols, no hashtags, no formatting characters of any kind.`;
 
-  // Use models confirmed to work with this key
-  const models = ['gemini-2.0-flash-lite', 'gemini-2.0-flash-lite-001', 'gemini-flash-lite-latest', 'gemini-2.0-flash-001', 'gemini-2.0-flash'];
+  // Try all versions and all models
+  const models = [
+    { v: 'v1beta', m: 'gemini-1.5-flash-latest' },
+    { v: 'v1beta', m: 'gemini-2.0-flash-lite-preview-02-05' },
+    { v: 'v1beta', m: 'gemini-2.0-flash-lite' },
+    { v: 'v1', m: 'gemini-1.5-flash' },
+    { v: 'v1beta', m: 'gemini-1.5-flash' },
+    { v: 'v1beta', m: 'gemini-1.0-pro' }
+  ];
+
   let responseText = '';
   let lastError = '';
 
-  for (const model of models) {
+  for (const item of models) {
     try {
-      responseText = await callGemini(KEY, model, systemPrompt, history, message);
-      if (responseText) { console.log('Used model:', model); break; }
+      // Internal function to call with version
+      const callWithVersion = (v, m) => {
+        return new Promise((resolve, reject) => {
+          const contents = [
+            ...history.map(h => ({
+              role: h.role === 'model' ? 'model' : 'user',
+              parts: [{ text: String(h.parts[0]?.text || h.parts) }]
+            })),
+            { role: 'user', parts: [{ text: message }] }
+          ];
+          const body = JSON.stringify({
+            contents,
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            generationConfig: { temperature: 0.7, maxOutputTokens: 1024 }
+          });
+          const options = {
+            hostname: 'generativelanguage.googleapis.com',
+            path: `/${v}/models/${m}:generateContent?key=${KEY}`,
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
+          };
+          const req = https.request(options, (res) => {
+            let data = '';
+            res.on('data', chunk => data += chunk);
+            res.on('end', () => {
+              try {
+                const parsed = JSON.parse(data);
+                if (parsed.error) return reject(new Error(parsed.error.message));
+                const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (!text) return reject(new Error('Empty'));
+                resolve(text);
+              } catch (e) { reject(new Error('Parse error')); }
+            });
+          });
+          req.on('error', reject);
+          req.setTimeout(15000, () => { req.destroy(); reject(new Error('Timeout')); });
+          req.write(body); req.end();
+        });
+      };
+
+      responseText = await callWithVersion(item.v, item.m);
+      if (responseText) { console.log('Success with:', item.m); break; }
     } catch (e) {
-      lastError = `${model}: ${e.message}`;
-      console.error(`Model ${model} failed:`, e.message);
+      lastError = `${item.m}: ${e.message}`;
+      console.error(`Attempt failed for ${item.m}:`, e.message);
     }
   }
 
