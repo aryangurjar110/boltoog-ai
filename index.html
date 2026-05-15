@@ -437,17 +437,24 @@
 
     // === CHAT LOGIC ===
     async function send() {
-      const text = msgInput.value.trim();
-      if (!text || loading) return;
-
-      if (!currentChatId) chatArea.innerHTML = '';
-      addMessage('user', text);
-      msgInput.value = '';
-      msgInput.style.height = 'auto';
-      loading = true;
-      const typingEl = showTyping();
-
       try {
+        const text = msgInput.value.trim();
+        if (!text || loading) return;
+
+        if (!session || !session.access_token) {
+          console.error("No active session");
+          window.location.href = '/login';
+          return;
+        }
+
+        if (!currentChatId) chatArea.innerHTML = '';
+        addMessage('user', text);
+        msgInput.value = '';
+        msgInput.style.height = 'auto';
+        sendBtn.classList.remove('active');
+        loading = true;
+        const typingEl = showTyping();
+
         const res = await fetch('/api/chat', {
           method: 'POST',
           headers: { 
@@ -456,11 +463,13 @@
           },
           body: JSON.stringify({ message: text, history: chatHistory, chatId: currentChatId })
         });
+
         if (res.status === 401) {
           localStorage.removeItem('boltoog_session');
           window.location.href = '/login';
           return;
         }
+
         const data = await res.json();
         typingEl.remove();
 
@@ -474,8 +483,9 @@
           }
         }
       } catch (e) {
-        typingEl.remove();
-        addMessage('ai', "Error connecting to Boltoog.");
+        console.error('Send error:', e);
+        if (typeof typingEl !== 'undefined') typingEl.remove();
+        addMessage('ai', "Error connecting to Boltoog. Please try again.");
       } finally {
         loading = false;
         scrollToBottom();
