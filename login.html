@@ -250,27 +250,31 @@
                             <svg id="eyeIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                 <circle cx="12" cy="12" r="3"></circle>
-                            </svg>
-                        </button>
-                    </div>
+                <div class="input-group">
+                    <label class="label">Email Address</label>
+                    <input type="email" id="email" class="input" placeholder="name@company.com" required>
                 </div>
-                
-                <div id="errorMsg" class="error-msg"></div>
 
-                <button type="submit" class="btn btn-primary" id="loginBtn">Sign Up</button>
+                <div class="input-group">
+                    <label class="label">Password</label>
+                    <input type="password" id="password" class="input" placeholder="••••••••" required>
+                </div>
+
+                <button type="submit" class="btn" id="submitBtn">Sign In</button>
             </form>
 
-            <p class="footer-text" id="footerText">
+            <p class="footer-text" id="footerText" style="margin-top: 15px;">
                 Already have an account? <a href="#" id="modeToggle">Sign in</a>
             </p>
 
-            <div style="margin-top: 30px;">
+            <div style="margin-top: 20px; padding-bottom: calc(10px + env(safe-area-inset-bottom));">
                 <button type="button" id="skipBtn" style="background:none; border:1px solid var(--border); color:var(--text-secondary); padding:10px 20px; border-radius:12px; font-size:13px; cursor:pointer; width:100%;">
                     Skip login (Chat will not be saved)
                 </button>
             </div>
-
         </div>
+    </div>
+</div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

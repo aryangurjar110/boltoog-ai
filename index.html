@@ -200,7 +200,11 @@ html, body {
 
   <header class="hdr">
     <div class="logo-area">
-      <button class="logo-sq" id="menuBtn" style="border:none; cursor:pointer;">⚡</button>
+      <button class="logo-sq" id="menuBtn" style="border:none; cursor:pointer; display:flex; flex-direction:column; gap:3px; background:var(--panel);">
+        <div style="width:18px; height:2px; background:#fff; border-radius:1px;"></div>
+        <div style="width:18px; height:2px; background:#fff; border-radius:1px;"></div>
+        <div style="width:18px; height:2px; background:#fff; border-radius:1px;"></div>
+      </button>
       <span class="brand-name">Boltoog AI</span>
     </div>
     <div id="activeChatTitle" style="color:var(--muted); font-size:13px; font-weight:500; opacity:0.6;"></div>
