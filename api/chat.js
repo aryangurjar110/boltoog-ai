@@ -16,11 +16,17 @@ module.exports = async (req, res) => {
     user = supabaseUser;
   }
 
-  const KEY = process.env.GEMINI_API_KEY;
+  const KEY = (process.env.GEMINI_API_KEY || '').trim();
   const { message, history = [], chatId } = req.body;
 
   if (!message) return res.status(400).json({ error: 'Message is required' });
-  if (!KEY) return res.status(500).json({ error: 'API KEY MISSING', details: 'Please add GEMINI_API_KEY to Vercel Environment Variables.' });
+  
+  if (!KEY) {
+    return res.status(500).json({ error: 'API KEY MISSING', details: 'Go to Vercel Settings -> Environment Variables and add GEMINI_API_KEY' });
+  }
+
+  // Diagnostic Info
+  const diag = `Key: ${KEY.substring(0,3)}...${KEY.substring(KEY.length-3)}`;
 
   // 1. FAST SAVING
   let activeChatId = chatId;
@@ -100,7 +106,10 @@ Give thoughtful, helpful answers in plain text only. Absolutely no markdown or a
   }
 
   if (!responseText) {
-    return res.status(500).json({ error: 'AI_FAILED', details: lastError || 'All models failed to respond.' });
+    return res.status(500).json({ 
+      error: 'AI_FAILED', 
+      details: `${diag} | ${lastError || 'All models failed.'}` 
+    });
   }
 
   const clean = responseText.replace(/\*\*/g, '').replace(/\*/g, '').replace(/#{1,6} /g, '').trim();
