@@ -83,11 +83,10 @@ Write in plain text only - absolutely no markdown, no asterisks, no bullet symbo
   ];
 
   let responseText = '';
-  let lastError = '';
+  let errorLog = [];
 
   for (const item of models) {
     try {
-      // Internal function to call with version
       const callWithVersion = (v, m) => {
         return new Promise((resolve, reject) => {
           const contents = [
@@ -114,29 +113,32 @@ Write in plain text only - absolutely no markdown, no asterisks, no bullet symbo
             res.on('end', () => {
               try {
                 const parsed = JSON.parse(data);
-                if (parsed.error) return reject(new Error(parsed.error.message));
+                if (parsed.error) return reject(new Error(`${m}(${v}): ${parsed.error.message}`));
                 const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (!text) return reject(new Error('Empty'));
+                if (!text) return reject(new Error(`${m}: Empty response`));
                 resolve(text);
-              } catch (e) { reject(new Error('Parse error')); }
+              } catch (e) { reject(new Error(`${m}: JSON Parse error`)); }
             });
           });
-          req.on('error', reject);
-          req.setTimeout(15000, () => { req.destroy(); reject(new Error('Timeout')); });
+          req.on('error', (e) => reject(new Error(`${m}: Network ${e.message}`)));
+          req.setTimeout(12000, () => { req.destroy(); reject(new Error(`${m}: Timeout`)); });
           req.write(body); req.end();
         });
       };
 
       responseText = await callWithVersion(item.v, item.m);
-      if (responseText) { console.log('Success with:', item.m); break; }
+      if (responseText) break;
     } catch (e) {
-      lastError = `${item.m}: ${e.message}`;
-      console.error(`Attempt failed for ${item.m}:`, e.message);
+      errorLog.push(e.message);
+      console.error('AI Attempt Failed:', e.message);
     }
   }
 
   if (!responseText) {
-    return res.status(500).json({ error: 'All AI models failed', details: lastError });
+    return res.status(500).json({ 
+      error: 'All AI models failed', 
+      details: errorLog.join(' | ') 
+    });
   }
 
   const clean = responseText.replace(/\*\*/g, '').replace(/\*/g, '').replace(/#{1,6} /g, '').replace(/`/g, '').trim();
