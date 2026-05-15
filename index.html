@@ -251,6 +251,12 @@
 <body>
   <div id="app">
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <div id="loadingOverlay" style="position:fixed; inset:0; background:var(--bg); z-index:9999; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:20px;">
+      <div class="logo" style="width:60px; height:60px; font-size:30px;">⚡</div>
+      <div style="color:var(--text-muted); font-size:14px; letter-spacing:1px; animation: pulse 2s infinite;">INITIALIZING BOLTOOG...</div>
+      <style>@keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }</style>
+    </div>
+
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <button class="new-chat-btn" id="newChatBtn">
@@ -301,13 +307,6 @@
     </main>
   </div>
 
-  <script>
-    // Global error handler for debugging
-    window.onerror = function(msg, url, lineNo, columnNo, error) {
-      console.error('GLOBAL ERROR:', msg, url, lineNo, columnNo, error);
-      return false;
-    };
-  </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     // === CONFIGURATION ===
@@ -315,8 +314,25 @@
     const SUPABASE_ANON_KEY = 'sb_publishable_il30olEoujJPa6BLrnV-bw_Jr6GruEs';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    // === STATE ===
     let session = null;
+    let currentChatId = null;
+    let loading = false;
+    let chatHistory = []; 
 
+    // === ELEMENTS ===
+    const chatArea = document.getElementById('chatArea');
+    const historyList = document.getElementById('historyList');
+    const msgInput = document.getElementById('msgInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const newChatBtn = document.getElementById('newChatBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const menuBtn = document.getElementById('menuBtn');
+    const sidebar = document.getElementById('sidebar');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+
+    // === AUTH ===
     async function checkAuth() {
       const { data: { session: currentSession } } = await supabaseClient.auth.getSession();
       if (!currentSession) {
@@ -329,14 +345,17 @@
     }
 
     async function init() {
-      await checkAuth();
-      if (session) {
-        loadHistory();
+      try {
+        await checkAuth();
+        if (session) {
+          await loadHistory();
+        }
+      } catch (e) {
+        console.error("Init error:", e);
+      } finally {
+        if (loadingOverlay) loadingOverlay.style.display = 'none';
       }
     }
-    
-    // Start the app properly
-    init();
 
     async function signOut() {
       await supabaseClient.auth.signOut();
@@ -344,48 +363,35 @@
       window.location.href = '/login';
     }
 
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) logoutBtn.onclick = signOut;
-
-    const chatArea = document.getElementById('chatArea');
-    const historyList = document.getElementById('historyList');
-    const msgInput = document.getElementById('msgInput');
-    const sendBtn = document.getElementById('sendBtn');
-    const newChatBtn = document.getElementById('newChatBtn');
-    const logoutBtn = document.getElementById('logoutBtn');
-    const menuBtn = document.getElementById('menuBtn');
-    const sidebar = document.getElementById('sidebar');
-    const sidebarOverlay = document.getElementById('sidebarOverlay');
-
-    let currentChatId = null;
-    let loading = false;
-    let chatHistory = []; // Local history for Gemini
-
-    // === UI HANDLERS ===
+    // === UI LOGIC ===
     function toggleSidebar() {
       sidebar.classList.toggle('open');
       sidebarOverlay.classList.toggle('open');
     }
-    menuBtn.onclick = toggleSidebar;
-    sidebarOverlay.onclick = toggleSidebar;
 
-    logoutBtn.onclick = () => {
-      localStorage.removeItem('boltoog_session');
-      window.location.href = '/login';
-    };
+    function addMessage(type, text) {
+      const group = document.createElement('div');
+      group.className = 'msg-group';
+      group.innerHTML = `
+        <div class="msg-label">${type === 'user' ? '👤 YOU' : '⚡ BOLTOOG'}</div>
+        <div class="msg ${type === 'user' ? 'user-msg' : 'ai-msg'}">${text}</div>
+      `;
+      chatArea.appendChild(group);
+      scrollToBottom();
+    }
 
-    newChatBtn.onclick = () => {
-      currentChatId = null;
-      chatHistory = [];
-      chatArea.innerHTML = `
-        <div class="welcome">
-          <div class="welcome-icon">⚡</div>
-          <h2>New Chat</h2>
-          <p>Ask Boltoog anything to start a conversation.</p>
-        </div>`;
-      document.querySelectorAll('.history-item').forEach(i => i.classList.remove('active'));
-      if (window.innerWidth <= 768) toggleSidebar();
-    };
+    function showTyping() {
+      const wrap = document.createElement('div');
+      wrap.className = 'typing-wrap';
+      wrap.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+      chatArea.appendChild(wrap);
+      scrollToBottom();
+      return wrap;
+    }
+
+    function scrollToBottom() {
+      chatArea.scrollTop = chatArea.scrollHeight;
+    }
 
     // === HISTORY LOGIC ===
     async function loadHistory() {
@@ -394,8 +400,7 @@
           headers: { 'Authorization': `Bearer ${session.access_token}` }
         });
         if (res.status === 401) {
-          localStorage.removeItem('boltoog_session');
-          window.location.href = '/login';
+          signOut();
           return;
         }
         const data = await res.json();
@@ -424,8 +429,7 @@
           headers: { 'Authorization': `Bearer ${session.access_token}` }
         });
         if (res.status === 401) {
-          localStorage.removeItem('boltoog_session');
-          window.location.href = '/login';
+          signOut();
           return;
         }
         const data = await res.json();
@@ -438,32 +442,29 @@
             chatHistory.push({ role: msg.role, parts: [{ text: msg.content }] });
           });
         }
-        loadHistory(); // Refresh active state
+        loadHistory();
       } catch (err) { chatArea.innerHTML = '<div class="welcome">Error loading chat.</div>'; }
     }
 
-    // === CHAT LOGIC ===
+    // === SEND LOGIC ===
     async function send() {
-      console.log("Send function triggered");
+      const text = msgInput.value.trim();
+      if (!text || loading) return;
+
+      if (!session) {
+        signOut();
+        return;
+      }
+
+      if (!currentChatId) chatArea.innerHTML = '';
+      addMessage('user', text);
+      msgInput.value = '';
+      msgInput.style.height = 'auto';
+      sendBtn.classList.remove('active');
+      loading = true;
+      const typingEl = showTyping();
+
       try {
-        const text = msgInput.value.trim();
-        console.log("Message text:", text);
-        if (!text || loading) return;
-
-        if (!session || !session.access_token) {
-          console.error("No active session");
-          window.location.href = '/login';
-          return;
-        }
-
-        if (!currentChatId) chatArea.innerHTML = '';
-        addMessage('user', text);
-        msgInput.value = '';
-        msgInput.style.height = 'auto';
-        sendBtn.classList.remove('active');
-        loading = true;
-        const typingEl = showTyping();
-
         const res = await fetch('/api/chat', {
           method: 'POST',
           headers: { 
@@ -474,8 +475,7 @@
         });
 
         if (res.status === 401) {
-          localStorage.removeItem('boltoog_session');
-          window.location.href = '/login';
+          signOut();
           return;
         }
 
@@ -493,7 +493,7 @@
         }
       } catch (e) {
         console.error('Send error:', e);
-        if (typeof typingEl !== 'undefined') typingEl.remove();
+        if (typingEl) typingEl.remove();
         addMessage('ai', "Error connecting to Boltoog. Please try again.");
       } finally {
         loading = false;
@@ -501,37 +501,40 @@
       }
     }
 
-    function addMessage(type, text) {
-      const group = document.createElement('div');
-      group.className = 'msg-group';
-      group.innerHTML = `
-        <div class="msg-label">${type === 'user' ? '👤 YOU' : '⚡ BOLTOOG'}</div>
-        <div class="msg ${type === 'user' ? 'user-msg' : 'ai-msg'}">${text}</div>
-      `;
-      chatArea.appendChild(group);
-      scrollToBottom();
-    }
-
-    function showTyping() {
-      const wrap = document.createElement('div');
-      wrap.className = 'typing-wrap';
-      wrap.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
-      chatArea.appendChild(wrap);
-      scrollToBottom();
-      return wrap;
-    }
-
-    function scrollToBottom() {
-      chatArea.scrollTop = chatArea.scrollHeight;
-    }
+    // === LISTENERS ===
+    menuBtn.onclick = toggleSidebar;
+    sidebarOverlay.onclick = toggleSidebar;
+    logoutBtn.onclick = signOut;
+    newChatBtn.onclick = () => {
+      currentChatId = null;
+      chatHistory = [];
+      chatArea.innerHTML = `
+        <div class="welcome">
+          <div class="welcome-icon">⚡</div>
+          <h2>New Chat</h2>
+          <p>Ask Boltoog anything to start a conversation.</p>
+        </div>`;
+      document.querySelectorAll('.history-item').forEach(i => i.classList.remove('active'));
+      if (window.innerWidth <= 768) toggleSidebar();
+    };
 
     msgInput.oninput = () => {
       msgInput.style.height = 'auto';
       msgInput.style.height = Math.min(msgInput.scrollHeight, 120) + 'px';
       sendBtn.classList.toggle('active', msgInput.value.trim().length > 0);
     };
-    msgInput.onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } };
+
+    msgInput.onkeydown = e => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        send();
+      }
+    };
+
     sendBtn.onclick = send;
+
+    // Start
+    init();
 
   </script>
 </body>
