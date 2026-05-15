@@ -233,14 +233,24 @@
             <h1>Welcome Back</h1>
             <p class="subtitle">Log in to your Boltoog AI account</p>
 
-            <div id="googleLoginSection">
-                <button class="btn btn-primary" onclick="loginWithGoogle()" style="display: flex; align-items: center; justify-content: center; gap: 12px; height: 56px;">
-                    <svg width="24" height="24" viewBox="0 0 24 24">
-                        <path fill="currentColor" d="M21.35,11.1H12.18V13.83H18.69C18.36,17.64 15.19,19.27 12.19,19.27C9.03,19.27 6.59,17.38 6.59,12.03C6.59,6.68 9.03,4.79 12.19,4.79C13.9,4.79 15.58,5.44 16.46,6.45L18.46,4.45C17.03,2.73 14.74,2.06 12.19,2.06C7.31,2.06 3.86,5.11 3.86,12.03C3.86,18.95 7.31,22 12.19,22C17.41,22 21.4,18.31 21.4,12.03C21.4,11.69 21.38,11.39 21.35,11.1Z" />
-                    </svg>
-                    Continue with Google
-                </button>
-            </div>
+            <form id="loginForm">
+                <div class="input-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" placeholder="name@example.com" required>
+                </div>
+                <div class="input-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="••••••••" required>
+                </div>
+                
+                <div id="errorMsg" class="error-msg">Invalid email or password</div>
+
+                <button type="submit" class="btn btn-primary">Sign In</button>
+            </form>
+
+            <p class="footer-text" id="footerText">
+                Don't have an account? <a href="#" id="modeToggle">Sign up for free</a>
+            </p>
 
         </div>
     </div>
@@ -253,22 +263,63 @@
 
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+        const loginForm = document.getElementById('loginForm');
+        const errorMsg = document.getElementById('errorMsg');
         const loginBtn = document.querySelector('.btn-primary');
+        const footerText = document.getElementById('footerText');
         
-        async function loginWithGoogle() {
+        let isSignUp = false;
+
+        // Toggle Sign Up / Sign In
+        footerText.addEventListener('click', (e) => {
+            if (e.target.id === 'modeToggle') {
+                e.preventDefault();
+                isSignUp = !isSignUp;
+                document.querySelector('h1').textContent = isSignUp ? 'Create Account' : 'Welcome Back';
+                document.querySelector('.subtitle').textContent = isSignUp ? 'Join Boltoog AI today' : 'Log in to your Boltoog AI account';
+                loginBtn.textContent = isSignUp ? 'Sign Up' : 'Sign In';
+                footerText.innerHTML = isSignUp 
+                    ? 'Already have an account? <a href="#" id="modeToggle">Sign in</a>' 
+                    : "Don't have an account? <a href=\"#\" id=\"modeToggle\">Sign up for free</a>";
+            }
+        });
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            loginBtn.disabled = true;
+            loginBtn.textContent = isSignUp ? 'Creating account...' : 'Signing in...';
+
             try {
-                const { error } = await supabaseClient.auth.signInWithOAuth({
-                    provider: 'google',
-                    options: {
-                        redirectTo: window.location.origin
+                let result;
+                if (isSignUp) {
+                    result = await supabaseClient.auth.signUp({ email, password });
+                } else {
+                    result = await supabaseClient.auth.signInWithPassword({ email, password });
+                }
+
+                if (result.error) {
+                    errorMsg.textContent = result.error.message;
+                    errorMsg.style.display = 'block';
+                } else {
+                    if (isSignUp && !result.data.session) {
+                        alert("Sign up successful! Please check your email for a confirmation link.");
+                    } else if (result.data.session) {
+                        localStorage.setItem('boltoog_session', JSON.stringify(result.data.session));
+                        window.location.href = '/';
                     }
-                });
-                if (error) throw error;
+                }
             } catch (err) {
                 console.error(err);
-                alert("Google Login Error: " + err.message + "\n\nMake sure Google is enabled in your Supabase Auth Providers.");
+                errorMsg.textContent = "An error occurred.";
+                errorMsg.style.display = 'block';
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = isSignUp ? 'Sign Up' : 'Sign In';
             }
-        }
+        });
 
         // Redirect if already logged in
         supabaseClient.auth.getSession().then(({ data: { session } }) => {
