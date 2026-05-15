@@ -321,7 +321,7 @@
     // AUTH CHECK: Redirect to login if no session
     // =============================================
     const session = localStorage.getItem('boltoog_session');
-    if (!session) {
+    if (!session && window.location.pathname !== '/login' && !window.location.pathname.endsWith('login.html')) {
       window.location.href = '/login';
     }
 
