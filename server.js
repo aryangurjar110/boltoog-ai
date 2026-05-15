@@ -25,29 +25,25 @@ app.post('/chat', async (req, res) => {
         
         // Use gemini-1.5-flash for better performance
         const model = genAI.getGenerativeModel({ 
-            model: "gemini-1.5-flash", 
-            systemInstruction: "You are Boltoog, a helpful AI created by Aryan. Plain text only."
+            model: "gemini-1.5-flash-latest", 
+            systemInstruction: "You are Boltoog, a helpful AI created by Aryan. Your responses must be in plain text only. No markdown, no bolding, no bullet points."
         });
 
-        const response = result.response;
-        const response = result.response;
+        const result = await model.generateContent(message);
+        const response = await result.response;
         
-        // Check if response exists and has text
-        if (!response || !response.text) {
-            return res.status(500).json({ 
-                error: "AI Error", 
-                details: "No response text generated" 
-            });
+        if (!response.text()) {
+            throw new Error("Empty response from AI");
         }
-        
         const text = response.text().replace(/[*_`#]/g, '');
 
         res.json({ response: text });
     } catch (error) {
-        console.error('Gemini API Error:', error.message);
+        console.error('Gemini API Error Detail:', error);
         res.status(500).json({ 
             error: "AI Error", 
-            details: error.message 
+            details: error.message,
+            suggestion: "Check if the API key has access to gemini-1.5-flash-latest"
         });
     }
 });
