@@ -257,16 +257,10 @@
                     </svg>
                     Google
                 </button>
-                <button class="btn btn-social" onclick="mockSocialLogin('Apple')">
-                    <svg width="18" height="18" viewBox="0 0 24 24">
-                        <path fill="currentColor" d="M17.05,20.28C15.47,21.82 13.4,22.74 11.2,22.74C8.2,22.74 5.62,20.91 4.21,18.18C2.73,15.31 2.6,11.83 4.21,8.96C5.62,6.23 8.2,4.4 11.2,4.4C13.4,4.4 15.47,5.32 17.05,6.86L18.46,5.45C16.5,3.48 13.85,2.33 11.2,2.33C7.38,2.33 4.14,4.64 2.4,8.08C0.45,11.91 0.6,16.51 2.4,20.34C4.14,23.78 7.38,26.09 11.2,26.09C13.85,26.09 16.5,24.94 18.46,22.97L17.05,20.28Z" />
-                    </svg>
-                    Apple
-                </button>
             </div>
 
-            <p class="footer-text">
-                Don't have an account? <a href="#">Sign up for free</a>
+            <p class="footer-text" id="footerText">
+                Don't have an account? <a href="#" id="modeToggle">Sign up for free</a>
             </p>
         </div>
     </div>
@@ -274,32 +268,31 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         // === CONFIGURATION ===
-        // These will be loaded from environment or placeholders
         const SUPABASE_URL = 'https://tbdcwlwxqsfogrgyxjwx.supabase.co'; 
         const SUPABASE_ANON_KEY = 'sb_publishable_il30olEoujJPa6BLrnV-bw_Jr6GruEs';
 
-        const supabaseClient = supabase.createClient(SUPABASE_URL || 'https://placeholder.supabase.co', SUPABASE_ANON_KEY || 'placeholder');
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         const loginForm = document.getElementById('loginForm');
         const errorMsg = document.getElementById('errorMsg');
         const loginBtn = document.querySelector('.btn-primary');
-        const footerText = document.querySelector('.footer-text');
+        const footerText = document.getElementById('footerText');
+        const modeToggle = document.getElementById('modeToggle');
         
         let isSignUp = false;
 
-        // Toggle Sign Up / Sign In
-        footerText.querySelector('a').addEventListener('click', (e) => {
-            e.preventDefault();
-            isSignUp = !isSignUp;
-            document.querySelector('h1').textContent = isSignUp ? 'Create Account' : 'Welcome Back';
-            document.querySelector('.subtitle').textContent = isSignUp ? 'Join Boltoog AI today' : 'Log in to your Boltoog AI account';
-            loginBtn.textContent = isSignUp ? 'Sign Up' : 'Sign In';
-            footerText.innerHTML = isSignUp 
-                ? 'Already have an account? <a href="#">Sign in</a>' 
-                : "Don't have an account? <a href=\"#\">Sign up for free</a>";
-            
-            // Re-bind listener
-            footerText.querySelector('a').addEventListener('click', arguments.callee);
+        // Toggle Sign Up / Sign In (using event delegation)
+        footerText.addEventListener('click', (e) => {
+            if (e.target.id === 'modeToggle') {
+                e.preventDefault();
+                isSignUp = !isSignUp;
+                document.querySelector('h1').textContent = isSignUp ? 'Create Account' : 'Welcome Back';
+                document.querySelector('.subtitle').textContent = isSignUp ? 'Join Boltoog AI today' : 'Log in to your Boltoog AI account';
+                loginBtn.textContent = isSignUp ? 'Sign Up' : 'Sign In';
+                footerText.innerHTML = isSignUp 
+                    ? 'Already have an account? <a href="#" id="modeToggle">Sign in</a>' 
+                    : "Don't have an account? <a href=\"#\" id=\"modeToggle\">Sign up for free</a>";
+            }
         });
 
         loginForm.addEventListener('submit', async (e) => {
