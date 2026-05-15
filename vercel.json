@@ -5,6 +5,8 @@
     { "source": "/api/chat", "destination": "/api/chat" },
     { "source": "/api/history", "destination": "/api/history" },
     { "source": "/api/chat-details", "destination": "/api/chat-details" },
+    { "source": "/api/delete-chat", "destination": "/api/delete-chat" },
+    { "source": "/api/status", "destination": "/api/status" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

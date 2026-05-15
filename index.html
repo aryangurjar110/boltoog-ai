@@ -1,541 +1,378 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="description" content="Boltoog AI - Premium AI Assistant by Aryan">
-  <meta name="theme-color" content="#09090b">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Boltoog AI</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg: #09090b;
-      --surface: #18181b;
-      --surface-hover: #27272a;
-      --accent: #a78bfa;
-      --accent-glow: rgba(167,139,250,0.15);
-      --accent-deep: #7c3aed;
-      --text: #fafafa;
-      --text-secondary: #a1a1aa;
-      --text-muted: #71717a;
-      --border: rgba(255,255,255,0.06);
-      --border-accent: rgba(167,139,250,0.2);
-      --glass: rgba(9,9,11,0.85);
-      --user-bubble: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
-      --ai-bubble: #18181b;
-      --radius: 20px;
-      --ease: cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#09090b">
+<title>Boltoog AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#09090b;--surface:#18181b;--surface2:#27272a;
+  --accent:#a78bfa;--deep:#7c3aed;
+  --text:#fafafa;--muted:#71717a;--sub:#a1a1aa;
+  --border:rgba(255,255,255,0.07);
+  --glass:rgba(9,9,11,0.9);
+  --ease:cubic-bezier(.16,1,.3,1);
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;overflow:hidden}
+/* Safe areas for phone */
+body{
+  padding-top:env(safe-area-inset-top);
+  padding-bottom:env(safe-area-inset-bottom);
+}
 
-    html { height:100%; overflow:hidden; touch-action:none; }
-    body {
-      height:100%; overflow:hidden;
-      background:var(--bg); color:var(--text);
-      font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
-      -webkit-font-smoothing:antialiased;
-      position:fixed; width:100%; top:0; left:0;
-      touch-action:none; overscroll-behavior:none;
-    }
+/* APP SHELL */
+#app{display:flex;height:100vh;height:100dvh;overflow:hidden}
 
-    /* === MAIN LAYOUT === */
-    #app {
-      display:flex;
-      height:100vh;
-      width: 100vw;
-      overflow:hidden;
-    }
+/* SIDEBAR */
+.sb{width:272px;flex-shrink:0;background:#0d0d0f;border-right:1px solid var(--border);display:flex;flex-direction:column;height:100%;transition:transform .3s var(--ease);z-index:300}
+.sb-head{padding:16px;border-bottom:1px solid var(--border)}
+.new-btn{width:100%;padding:11px;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:.2s var(--ease)}
+.new-btn:hover{background:var(--surface2);border-color:var(--accent)}
+.sb-list{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:2px}
+.sb-list::-webkit-scrollbar{width:3px}.sb-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.chat-item{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:10px;cursor:pointer;color:var(--sub);font-size:13px;border:1px solid transparent;transition:.15s var(--ease)}
+.chat-item:hover{background:var(--surface);color:var(--text)}
+.chat-item.active{background:rgba(124,58,237,0.12);color:var(--accent);border-color:rgba(124,58,237,0.2)}
+.chat-title{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.del-btn{opacity:0;flex-shrink:0;background:none;border:none;color:var(--muted);cursor:pointer;padding:2px;border-radius:4px;display:flex;align-items:center;justify-content:center;transition:.15s}
+.chat-item:hover .del-btn{opacity:1}.del-btn:hover{color:#f87171}
 
-    /* === SIDEBAR === */
-    .sidebar {
-      width: 280px;
-      height: 100%;
-      background: #0c0c0e;
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      transition: transform 0.3s var(--ease);
-      z-index: 200;
-    }
-    .sidebar-header {
-      padding: 20px;
-      border-bottom: 1px solid var(--border);
-    }
-    .new-chat-btn {
-      width: 100%;
-      padding: 12px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      color: var(--text);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s var(--ease);
-    }
-    .new-chat-btn:hover { background: var(--surface-hover); border-color: var(--accent); }
-    
-    .history-list {
-      flex: 1;
-      overflow-y: auto;
-      padding: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .history-item {
-      padding: 12px;
-      border-radius: 10px;
-      cursor: pointer;
-      font-size: 14px;
-      color: var(--text-secondary);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      transition: all 0.2s var(--ease);
-      border: 1px solid transparent;
-    }
-    .history-item:hover { background: var(--surface); color: var(--text); }
-    .history-item.active { background: var(--accent-glow); color: var(--accent); border-color: var(--border-accent); }
+/* OVERLAY */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);z-index:250}
+.overlay.open{display:block}
 
-    .main-content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      position: relative;
-      min-width: 0;
-    }
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;height:100%}
 
-    /* === AMBIENT BG === */
-    .ambient { position:absolute; inset:0; pointer-events:none; z-index:0; overflow:hidden; }
-    .ambient::before {
-      content:''; position:absolute; width:600px; height:600px; top:-200px; right:-200px;
-      background:radial-gradient(circle,rgba(124,58,237,0.08) 0%,transparent 70%);
-      animation:ambFloat 20s ease-in-out infinite alternate;
-    }
+/* HEADER */
+.hdr{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--glass);backdrop-filter:blur(30px);border-bottom:1px solid var(--border);z-index:10}
+.hdr-left{display:flex;align-items:center;gap:10px}
+.logo-box{width:36px;height:36px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 4px 16px rgba(124,58,237,.35)}
+.brand{font-size:15px;font-weight:700;background:linear-gradient(135deg,#fff,#a1a1aa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hdr-right{display:flex;gap:6px}
+.icon-btn{width:34px;height:34px;border-radius:9px;border:1px solid var(--border);background:transparent;color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.2s}
+.icon-btn:hover{background:var(--surface);color:var(--text)}
+#menuBtn{display:none}
 
-    /* === HEADER === */
-    .header {
-      position:relative; z-index:50; flex-shrink:0;
-      padding:14px 20px;
-      display:flex; align-items:center; justify-content:space-between;
-      background:var(--glass);
-      backdrop-filter:blur(40px); -webkit-backdrop-filter:blur(40px);
-      border-bottom:1px solid var(--border);
-    }
-    .header-left { display:flex; align-items:center; gap:12px; }
-    .logo {
-      width:38px; height:38px;
-      background:var(--user-bubble); border-radius:12px;
-      display:flex; align-items:center; justify-content:center;
-      font-size:18px; box-shadow:0 4px 20px rgba(124,58,237,0.3);
-    }
-    .header-text h1 {
-      font-size:16px; font-weight:700; letter-spacing:-0.3px;
-      background:linear-gradient(135deg,#fff,#a1a1aa);
-      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
-    }
-    .header-actions { display: flex; gap: 8px; }
-    .icon-btn {
-      width:36px; height:36px; border-radius:10px;
-      border:1px solid var(--border); background:transparent; color:var(--text-muted);
-      display:flex; align-items:center; justify-content:center;
-      cursor:pointer; transition:all 0.2s var(--ease);
-    }
-    .icon-btn:hover { background:var(--surface); color:var(--text); border-color:var(--border-accent); }
-    .icon-btn.menu-btn { display: none; }
+/* CHAT */
+.chat{flex:1;overflow-y:auto;overflow-x:hidden;padding:16px;display:flex;flex-direction:column;gap:4px;-webkit-overflow-scrolling:touch}
+.chat::-webkit-scrollbar{width:3px}.chat::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 
-    /* === CHAT AREA === */
-    .chat-area {
-      flex:1; min-height:0;
-      overflow-y:auto; overflow-x:hidden;
-      padding:20px 16px;
-      display:flex; flex-direction:column; gap:6px;
-      -webkit-overflow-scrolling:touch;
-      position:relative; z-index:1;
-    }
-    .chat-area::-webkit-scrollbar { width:4px; }
-    .chat-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+/* WELCOME */
+.welcome{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px 20px;gap:16px}
+.welcome .w-icon{font-size:48px;filter:drop-shadow(0 0 20px rgba(124,58,237,.5))}
+.welcome h2{font-size:22px;font-weight:700;background:linear-gradient(135deg,#fff,#a1a1aa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.welcome p{color:var(--muted);font-size:14px}
 
-    .welcome {
-      flex:1; display:flex; flex-direction:column;
-      align-items:center; justify-content:center;
-      text-align:center; padding:40px 24px;
-      animation:fadeUp 0.6s var(--ease) forwards;
-    }
+/* MESSAGES */
+.msg-group{display:flex;flex-direction:column;margin-top:12px;animation:fadeUp .3s var(--ease)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.msg-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.bubble{padding:13px 17px;font-size:14.5px;line-height:1.65;word-break:break-word;max-width:86%}
+.bubble.user{align-self:flex-end;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border-radius:18px 18px 4px 18px}
+.bubble.ai{align-self:flex-start;background:var(--surface);border:1px solid var(--border);color:#e4e4e7;border-radius:18px 18px 18px 4px}
 
-    /* === MESSAGES === */
-    .msg-group { display:flex; flex-direction:column; gap:2px; }
-    .msg-group + .msg-group { margin-top:16px; }
-    .msg-label {
-      font-size:11px; font-weight:600; text-transform:uppercase;
-      color:var(--text-muted); padding:0 4px; margin-bottom:6px;
-      display:flex; align-items:center; gap:6px;
-    }
-    .msg {
-      padding:14px 18px; font-size:15px; line-height:1.65;
-      animation:msgIn 0.35s var(--ease) forwards;
-      opacity:0; transform:translateY(8px);
-      word-wrap:break-word;
-    }
-    @keyframes msgIn { to{opacity:1;transform:translateY(0)} }
-    .msg.user-msg {
-      align-self:flex-end; max-width:82%;
-      background:var(--user-bubble); color:#fff;
-      border-radius:20px 20px 6px 20px;
-    }
-    .msg.ai-msg {
-      align-self:flex-start; max-width:88%;
-      background:var(--ai-bubble); border:1px solid var(--border);
-      color:#e4e4e7; border-radius:20px 20px 20px 6px;
-    }
+/* THINKING DOTS */
+.thinking{display:flex;align-items:center;gap:6px;padding:13px 17px;background:var(--surface);border:1px solid var(--border);border-radius:18px 18px 18px 4px;align-self:flex-start;margin-top:12px}
+.thinking span{width:7px;height:7px;background:var(--accent);border-radius:50%;animation:blink 1.4s infinite}
+.thinking span:nth-child(2){animation-delay:.2s}
+.thinking span:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,100%{transform:scale(.7);opacity:.3}50%{transform:scale(1.1);opacity:1}}
 
-    /* === INPUT DOCK === */
-    .input-dock {
-      flex-shrink:0;
-      padding:12px 16px;
-      padding-bottom:calc(12px + env(safe-area-inset-bottom, 0px));
-      background:var(--glass);
-      backdrop-filter:blur(40px);
-      border-top:1px solid var(--border);
-      z-index: 100;
-    }
-    .input-wrapper {
-      max-width:680px; margin:0 auto;
-      background:var(--surface); border:1px solid var(--border);
-      border-radius:16px; display:flex; align-items:flex-end;
-      padding:6px 6px 6px 16px; gap:8px;
-    }
-    #msgInput {
-      flex:1; background:transparent; border:none; outline:none;
-      color:var(--text); font-size:15px;
-      resize:none; min-height:24px; max-height:120px;
-      line-height:1.5; padding:8px 0;
-    }
-    .send-btn {
-      width:40px; height:40px; border-radius:12px; border:none;
-      background:var(--accent-deep); color:#fff;
-      display:flex; align-items:center; justify-content:center;
-      cursor:pointer; opacity:0.3;
-      transition:all 0.2s var(--ease);
-    }
-    .send-btn.active { opacity:1; }
+/* INPUT DOCK */
+.dock{flex-shrink:0;padding:10px 14px;padding-bottom:max(10px, env(safe-area-inset-bottom));background:var(--glass);backdrop-filter:blur(30px);border-top:1px solid var(--border)}
+.input-row{display:flex;align-items:flex-end;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:15px;padding:6px 6px 6px 14px;max-width:680px;margin:0 auto;transition:.2s}
+.input-row:focus-within{border-color:rgba(124,58,237,.4)}
+#msg{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:15px;resize:none;min-height:22px;max-height:120px;padding:7px 0;line-height:1.5;font-family:'Inter',sans-serif}
+#msg::placeholder{color:var(--muted)}
+#sendBtn{width:38px;height:38px;border-radius:10px;border:none;background:var(--deep);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;opacity:.35;transition:.2s var(--ease)}
+#sendBtn.on{opacity:1;box-shadow:0 4px 14px rgba(124,58,237,.4)}
+#sendBtn:active{transform:scale(.94)}
 
-    @media (max-width: 768px) {
-      .sidebar {
-        position: absolute;
-        left: 0; top: 0; bottom: 0;
-        transform: translateX(-100%);
-      }
-      .sidebar.open { transform: translateX(0); box-shadow: 20px 0 50px rgba(0,0,0,0.5); }
-      .icon-btn.menu-btn { display: flex; }
-      .sidebar-overlay {
-        display: none;
-        position: fixed; inset: 0;
-        background: rgba(0,0,0,0.5);
-        backdrop-filter: blur(4px);
-        z-index: 150;
-      }
-      .sidebar-overlay.open { display: block; }
-    }
-  </style>
+/* LOADING SCREEN */
+#splash{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px}
+#splash .s-logo{width:64px;height:64px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:30px;box-shadow:0 8px 32px rgba(124,58,237,.4)}
+#splash .s-text{color:var(--muted);font-size:13px;letter-spacing:1.5px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
+
+/* MOBILE */
+@media(max-width:720px){
+  #menuBtn{display:flex}
+  .sb{position:fixed;top:0;left:0;bottom:0;transform:translateX(-101%);width:82%;max-width:300px}
+  .sb.open{transform:none;box-shadow:24px 0 60px rgba(0,0,0,.7)}
+  .hdr{padding:10px 14px}
+  .dock{padding:8px 10px;padding-bottom:max(8px,env(safe-area-inset-bottom))}
+  .bubble{max-width:93%}
+}
+</style>
 </head>
 <body>
-  <div id="app">
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-    <div id="loadingOverlay" style="position:fixed; inset:0; background:var(--bg); z-index:9999; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:20px;">
-      <div class="logo" style="width:60px; height:60px; font-size:30px;">⚡</div>
-      <div style="color:var(--text-muted); font-size:14px; letter-spacing:1px; animation: pulse 2s infinite;">INITIALIZING BOLTOOG...</div>
-      <style>@keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }</style>
-    </div>
 
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-header">
-        <button class="new-chat-btn" id="newChatBtn">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-          New Chat
+<div id="splash">
+  <div class="s-logo">⚡</div>
+  <div class="s-text">LOADING BOLTOOG...</div>
+</div>
+
+<div id="app">
+  <div class="overlay" id="overlay"></div>
+
+  <!-- Sidebar -->
+  <nav class="sb" id="sb">
+    <div class="sb-head">
+      <button class="new-btn" id="newBtn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        New Chat
+      </button>
+    </div>
+    <div class="sb-list" id="sbList"></div>
+  </nav>
+
+  <!-- Main -->
+  <div class="main">
+    <header class="hdr">
+      <div class="hdr-left">
+        <button class="icon-btn" id="menuBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <div class="logo-box">⚡</div>
+        <span class="brand">Boltoog AI</span>
+      </div>
+      <div class="hdr-right">
+        <button class="icon-btn" id="logoutBtn" title="Sign out">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         </button>
       </div>
-      <div class="history-list" id="historyList">
-        <!-- History items will be injected here -->
-      </div>
-    </aside>
+    </header>
 
-    <main class="main-content">
-      <div class="ambient"></div>
-      <header class="header">
-        <div class="header-left">
-          <button class="icon-btn menu-btn" id="menuBtn">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-          </button>
-          <div class="logo">⚡</div>
-          <div class="header-text">
-            <h1>Boltoog AI</h1>
-          </div>
-        </div>
-        <div class="header-actions">
-          <button class="icon-btn" id="logoutBtn" title="Sign Out">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-          </button>
-        </div>
-      </header>
-
-      <div class="chat-area" id="chatArea">
-        <div class="welcome" id="welcome">
-          <div class="welcome-icon">⚡</div>
-          <h2>Welcome back!</h2>
-          <p>Select a past chat from the sidebar or start a new one.</p>
-        </div>
+    <div class="chat" id="chat">
+      <div class="welcome">
+        <div class="w-icon">⚡</div>
+        <h2>Hey, I'm Boltoog</h2>
+        <p>Your AI assistant. Ask me anything!</p>
       </div>
+    </div>
 
-      <div class="input-dock">
-        <div class="input-wrapper">
-          <textarea id="msgInput" rows="1" placeholder="Ask Boltoog anything..." autocomplete="off"></textarea>
-          <button class="send-btn" id="sendBtn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4z"/></svg>
-          </button>
-        </div>
+    <div class="dock">
+      <div class="input-row">
+        <textarea id="msg" rows="1" placeholder="Ask Boltoog anything..."></textarea>
+        <button id="sendBtn">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4z"/></svg>
+        </button>
       </div>
-    </main>
+    </div>
   </div>
+</div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script>
-    // === CONFIGURATION ===
-    const SUPABASE_URL = 'https://tbdcwlwxqsfogrgyxjwx.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_il30olEoujJPa6BLrnV-bw_Jr6GruEs';
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SB_URL = 'https://tbdcwlwxqsfogrgyxjwx.supabase.co';
+const SB_KEY = 'sb_publishable_il30olEoujJPa6BLrnV-bw_Jr6GruEs';
+const sb = supabase.createClient(SB_URL, SB_KEY);
 
-    // === STATE ===
-    let session = null;
-    let currentChatId = null;
-    let loading = false;
-    let chatHistory = []; 
+let session = null, currentId = null, history = [], busy = false;
 
-    // === ELEMENTS ===
-    const chatArea = document.getElementById('chatArea');
-    const historyList = document.getElementById('historyList');
-    const msgInput = document.getElementById('msgInput');
-    const sendBtn = document.getElementById('sendBtn');
-    const newChatBtn = document.getElementById('newChatBtn');
-    const logoutBtn = document.getElementById('logoutBtn');
-    const menuBtn = document.getElementById('menuBtn');
-    const sidebar = document.getElementById('sidebar');
-    const sidebarOverlay = document.getElementById('sidebarOverlay');
-    const loadingOverlay = document.getElementById('loadingOverlay');
+const chat = document.getElementById('chat');
+const msg = document.getElementById('msg');
+const sendBtn = document.getElementById('sendBtn');
+const sbList = document.getElementById('sbList');
+const sidebar = document.getElementById('sb');
+const overlay = document.getElementById('overlay');
+const splash = document.getElementById('splash');
 
-    // === AUTH ===
-    async function checkAuth() {
-      const { data: { session: currentSession } } = await supabaseClient.auth.getSession();
-      if (!currentSession) {
-        localStorage.removeItem('boltoog_session');
-        window.location.href = '/login';
-        return;
+// ---- AUTH ----
+async function boot() {
+  try {
+    // Try cached session first
+    const cached = localStorage.getItem('bs');
+    if (cached) try { session = JSON.parse(cached); } catch(e) {}
+
+    const { data } = await sb.auth.getSession();
+    if (data.session) {
+      session = data.session;
+      localStorage.setItem('bs', JSON.stringify(session));
+    } else if (!session) {
+      window.location.href = '/login'; return;
+    }
+
+    await loadHistory();
+  } catch(e) { console.error('Boot error:', e); }
+  finally { splash.style.display = 'none'; }
+}
+
+async function logout() {
+  await sb.auth.signOut();
+  localStorage.removeItem('bs');
+  window.location.href = '/login';
+}
+
+// ---- HISTORY ----
+async function loadHistory() {
+  try {
+    const r = await fetch('/api/history', { headers: { Authorization: `Bearer ${session.access_token}` } });
+    if (r.status === 401) { logout(); return; }
+    const d = await r.json();
+    renderHistory(d.chats || []);
+  } catch(e) { console.error('History:', e); }
+}
+
+function renderHistory(chats) {
+  sbList.innerHTML = '';
+  if (!chats.length) {
+    sbList.innerHTML = '<div style="padding:20px 12px;color:var(--muted);font-size:13px;text-align:center">No chats yet</div>';
+    return;
+  }
+  chats.forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'chat-item' + (c.id === currentId ? ' active' : '');
+    el.dataset.id = c.id;
+    el.innerHTML = `
+      <span style="font-size:14px;flex-shrink:0">💬</span>
+      <span class="chat-title">${c.title || 'Chat'}</span>
+      <button class="del-btn" data-id="${c.id}" title="Delete">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+      </button>`;
+    el.addEventListener('click', e => {
+      if (e.target.closest('.del-btn')) return;
+      openChat(c.id);
+      closeSidebar();
+    });
+    el.querySelector('.del-btn').addEventListener('click', e => { e.stopPropagation(); delChat(c.id); });
+    sbList.appendChild(el);
+  });
+}
+
+async function openChat(id) {
+  if (id === currentId) return;
+  currentId = id; history = [];
+  chat.innerHTML = '<div class="welcome"><p style="color:var(--muted)">Loading...</p></div>';
+  try {
+    const r = await fetch(`/api/chat-details?id=${id}`, { headers: { Authorization: `Bearer ${session.access_token}` } });
+    const d = await r.json();
+    chat.innerHTML = '';
+    (d.messages || []).forEach(m => {
+      addBubble(m.role === 'user' ? 'user' : 'ai', m.content, false);
+      history.push({ role: m.role, parts: [{ text: m.content }] });
+    });
+  } catch(e) { chat.innerHTML = '<div class="welcome"><p style="color:var(--muted)">Failed to load.</p></div>'; }
+  scrollDown();
+  highlightActive();
+}
+
+async function delChat(id) {
+  if (!confirm('Delete this chat?')) return;
+  try {
+    await fetch(`/api/delete-chat?id=${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${session.access_token}` } });
+    if (currentId === id) { currentId = null; history = []; showWelcome(); }
+    loadHistory();
+  } catch(e) {}
+}
+
+function highlightActive() {
+  document.querySelectorAll('.chat-item').forEach(el => el.classList.toggle('active', el.dataset.id === currentId));
+}
+
+// ---- CHAT ----
+function showWelcome() {
+  chat.innerHTML = `<div class="welcome"><div class="w-icon">⚡</div><h2>Hey, I'm Boltoog</h2><p>Your AI assistant. Ask me anything!</p></div>`;
+}
+
+function addBubble(type, text, animate = true) {
+  const g = document.createElement('div');
+  g.className = 'msg-group';
+  const label = type === 'user' ? '👤 YOU' : '⚡ BOLTOOG';
+  g.innerHTML = `<div class="msg-label">${label}</div><div class="bubble ${type}">${text}</div>`;
+  if (!animate) g.style.animation = 'none';
+  chat.appendChild(g);
+  scrollDown();
+  return g;
+}
+
+function showThinking() {
+  const t = document.createElement('div');
+  t.className = 'thinking';
+  t.innerHTML = '<span></span><span></span><span></span>';
+  chat.appendChild(t);
+  scrollDown();
+  return t;
+}
+
+function scrollDown() { chat.scrollTop = chat.scrollHeight; }
+
+async function send() {
+  const text = msg.value.trim();
+  if (!text || busy) return;
+  if (!session) { logout(); return; }
+
+  // Clear welcome if new chat
+  if (!currentId) chat.innerHTML = '';
+
+  addBubble('user', text);
+  msg.value = '';
+  msg.style.height = 'auto';
+  sendBtn.classList.remove('on');
+  busy = true;
+  const dot = showThinking();
+
+  try {
+    const r = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({ message: text, history, chatId: currentId })
+    });
+
+    if (r.status === 401) { logout(); return; }
+
+    const d = await r.json();
+    dot.remove();
+
+    if (d.response) {
+      addBubble('ai', d.response);
+      history.push({ role: 'user', parts: [{ text }] });
+      history.push({ role: 'model', parts: [{ text: d.response }] });
+      if (!currentId && d.chatId) {
+        currentId = d.chatId;
+        await loadHistory();
       }
-      session = currentSession;
-      localStorage.setItem('boltoog_session', JSON.stringify(session));
+    } else {
+      addBubble('ai', 'Sorry, something went wrong. Try again.');
     }
+  } catch(e) {
+    dot.remove();
+    addBubble('ai', 'Connection error. Please check your internet and try again.');
+  } finally {
+    busy = false;
+    scrollDown();
+  }
+}
 
-    async function init() {
-      try {
-        await checkAuth();
-        if (session) {
-          await loadHistory();
-        }
-      } catch (e) {
-        console.error("Init error:", e);
-      } finally {
-        if (loadingOverlay) loadingOverlay.style.display = 'none';
-      }
-    }
+// ---- INPUT ----
+msg.addEventListener('input', () => {
+  msg.style.height = 'auto';
+  msg.style.height = Math.min(msg.scrollHeight, 120) + 'px';
+  sendBtn.classList.toggle('on', msg.value.trim().length > 0);
+});
+msg.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
+sendBtn.addEventListener('click', send);
 
-    async function signOut() {
-      await supabaseClient.auth.signOut();
-      localStorage.removeItem('boltoog_session');
-      window.location.href = '/login';
-    }
+// ---- SIDEBAR ----
+function openSidebar() { sidebar.classList.add('open'); overlay.classList.add('open'); }
+function closeSidebar() { sidebar.classList.remove('open'); overlay.classList.remove('open'); }
 
-    // === UI LOGIC ===
-    function toggleSidebar() {
-      sidebar.classList.toggle('open');
-      sidebarOverlay.classList.toggle('open');
-    }
+document.getElementById('menuBtn').addEventListener('click', openSidebar);
+overlay.addEventListener('click', closeSidebar);
+document.getElementById('logoutBtn').addEventListener('click', logout);
+document.getElementById('newBtn').addEventListener('click', () => {
+  currentId = null; history = [];
+  showWelcome();
+  highlightActive();
+  closeSidebar();
+});
 
-    function addMessage(type, text) {
-      const group = document.createElement('div');
-      group.className = 'msg-group';
-      group.innerHTML = `
-        <div class="msg-label">${type === 'user' ? '👤 YOU' : '⚡ BOLTOOG'}</div>
-        <div class="msg ${type === 'user' ? 'user-msg' : 'ai-msg'}">${text}</div>
-      `;
-      chatArea.appendChild(group);
-      scrollToBottom();
-    }
-
-    function showTyping() {
-      const wrap = document.createElement('div');
-      wrap.className = 'typing-wrap';
-      wrap.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
-      chatArea.appendChild(wrap);
-      scrollToBottom();
-      return wrap;
-    }
-
-    function scrollToBottom() {
-      chatArea.scrollTop = chatArea.scrollHeight;
-    }
-
-    // === HISTORY LOGIC ===
-    async function loadHistory() {
-      try {
-        const res = await fetch('/api/history', {
-          headers: { 'Authorization': `Bearer ${session.access_token}` }
-        });
-        if (res.status === 401) {
-          signOut();
-          return;
-        }
-        const data = await res.json();
-        if (data.chats) {
-          historyList.innerHTML = '';
-          data.chats.forEach(chat => {
-            const item = document.createElement('div');
-            item.className = 'history-item';
-            if (chat.id === currentChatId) item.classList.add('active');
-            item.textContent = chat.title || 'Untitled Chat';
-            item.onclick = () => loadChat(chat.id);
-            historyList.appendChild(item);
-          });
-        }
-      } catch (err) { console.error("History error:", err); }
-    }
-
-    async function loadChat(id) {
-      if (currentChatId === id) return;
-      currentChatId = id;
-      chatArea.innerHTML = '<div class="welcome">Loading messages...</div>';
-      if (window.innerWidth <= 768) toggleSidebar();
-      
-      try {
-        const res = await fetch(`/api/chat-details?id=${id}`, {
-          headers: { 'Authorization': `Bearer ${session.access_token}` }
-        });
-        if (res.status === 401) {
-          signOut();
-          return;
-        }
-        const data = await res.json();
-        chatArea.innerHTML = '';
-        chatHistory = [];
-        
-        if (data.messages) {
-          data.messages.forEach(msg => {
-            addMessage(msg.role === 'model' ? 'ai' : 'user', msg.content);
-            chatHistory.push({ role: msg.role, parts: [{ text: msg.content }] });
-          });
-        }
-        loadHistory();
-      } catch (err) { chatArea.innerHTML = '<div class="welcome">Error loading chat.</div>'; }
-    }
-
-    // === SEND LOGIC ===
-    async function send() {
-      const text = msgInput.value.trim();
-      if (!text || loading) return;
-
-      if (!session) {
-        signOut();
-        return;
-      }
-
-      if (!currentChatId) chatArea.innerHTML = '';
-      addMessage('user', text);
-      msgInput.value = '';
-      msgInput.style.height = 'auto';
-      sendBtn.classList.remove('active');
-      loading = true;
-      const typingEl = showTyping();
-
-      try {
-        const res = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`
-          },
-          body: JSON.stringify({ message: text, history: chatHistory, chatId: currentChatId })
-        });
-
-        if (res.status === 401) {
-          signOut();
-          return;
-        }
-
-        const data = await res.json();
-        typingEl.remove();
-
-        if (data.response) {
-          addMessage('ai', data.response);
-          chatHistory.push({ role: "user", parts: [{ text }] });
-          chatHistory.push({ role: "model", parts: [{ text: data.response }] });
-          if (!currentChatId) {
-            currentChatId = data.chatId;
-            loadHistory();
-          }
-        }
-      } catch (e) {
-        console.error('Send error:', e);
-        if (typingEl) typingEl.remove();
-        addMessage('ai', "Error connecting to Boltoog. Please try again.");
-      } finally {
-        loading = false;
-        scrollToBottom();
-      }
-    }
-
-    // === LISTENERS ===
-    menuBtn.onclick = toggleSidebar;
-    sidebarOverlay.onclick = toggleSidebar;
-    logoutBtn.onclick = signOut;
-    newChatBtn.onclick = () => {
-      currentChatId = null;
-      chatHistory = [];
-      chatArea.innerHTML = `
-        <div class="welcome">
-          <div class="welcome-icon">⚡</div>
-          <h2>New Chat</h2>
-          <p>Ask Boltoog anything to start a conversation.</p>
-        </div>`;
-      document.querySelectorAll('.history-item').forEach(i => i.classList.remove('active'));
-      if (window.innerWidth <= 768) toggleSidebar();
-    };
-
-    msgInput.oninput = () => {
-      msgInput.style.height = 'auto';
-      msgInput.style.height = Math.min(msgInput.scrollHeight, 120) + 'px';
-      sendBtn.classList.toggle('active', msgInput.value.trim().length > 0);
-    };
-
-    msgInput.onkeydown = e => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        send();
-      }
-    };
-
-    sendBtn.onclick = send;
-
-    // Start
-    init();
-
-  </script>
+// Boot
+boot();
+</script>
 </body>
 </html>

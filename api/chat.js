@@ -2,137 +2,81 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { supabase } = require('./lib/supabase');
 
 module.exports = async (req, res) => {
-    // Set CORS headers
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-    res.setHeader(
-        'Access-Control-Allow-Headers',
-        'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
-    );
+    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
+    res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
 
-    // Handle OPTIONS request
-    if (req.method === 'OPTIONS') {
-        res.status(200).end();
-        return;
-    }
+    if (req.method === 'OPTIONS') { res.status(200).end(); return; }
+    if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method Not Allowed' });
-    }
-
-    // Authenticate with Supabase
+    // Auth
     const authHeader = req.headers.authorization;
-    if (!authHeader) {
-        return res.status(401).json({ error: "Unauthorized: Missing Authorization header" });
-    }
+    if (!authHeader) return res.status(401).json({ error: "Unauthorized: Missing Authorization header" });
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
-    if (authError || !user) {
-        console.error("Auth error:", authError);
-        return res.status(401).json({ error: "Unauthorized: Invalid or expired session" });
-    }
+    if (authError || !user) return res.status(401).json({ error: "Unauthorized: Invalid or expired session" });
 
     const { message, history, chatId } = req.body;
     const KEY = process.env.GEMINI_API_KEY;
 
-    if (!message) {
-        return res.status(400).json({ error: "Message is required" });
-    }
-
-    if (!KEY || KEY.length < 10) {
-        return res.status(500).json({ 
-            error: "API Key missing or invalid", 
-            details: "Please set GEMINI_API_KEY in Vercel environment variables" 
-        });
-    }
+    if (!message) return res.status(400).json({ error: "Message is required" });
+    if (!KEY || KEY.length < 10) return res.status(500).json({ error: "GEMINI_API_KEY is missing. Set it in Vercel Environment Variables." });
 
     try {
         const genAI = new GoogleGenerativeAI(KEY);
+        const modelsToTry = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-2.0-flash-lite"];
         
-        const modelsToTry = [
-            "gemini-2.0-flash", 
-            "gemini-2.0-flash-lite",
-            "gemini-flash-latest", 
-            "gemini-pro-latest"
-        ];
         let responseText = "";
         let errorDetails = "";
-
-        const isFirstMessage = !history || history.length === 0;
-        const baseInstruction = "You are Boltoog, a helpful AI created by Aryan. Your responses must be in plain text only. No markdown.";
-        const currentInstruction = isFirstMessage 
-            ? `${baseInstruction} Introduce yourself once.`
-            : `${baseInstruction} DO NOT introduce yourself or mention Aryan. Answer directly.`;
+        const instruction = "You are Boltoog, a helpful AI created by Aryan. Respond in plain text only. No markdown, no asterisks, no bullet symbols, no formatting characters.";
 
         for (const modelName of modelsToTry) {
             try {
-                const model = genAI.getGenerativeModel({ 
-                    model: modelName, 
-                    systemInstruction: currentInstruction
-                });
-
+                const model = genAI.getGenerativeModel({ model: modelName, systemInstruction: instruction });
                 const safeHistory = (history || []).map(h => ({
                     role: h.role,
-                    parts: Array.isArray(h.parts) ? h.parts : [{ text: h.parts }]
+                    parts: Array.isArray(h.parts) ? h.parts : [{ text: String(h.parts) }]
                 }));
-
                 const chat = model.startChat({ history: safeHistory });
                 const result = await chat.sendMessage(message);
-                const response = await result.response;
-                responseText = response.text();
-                
+                responseText = result.response.text();
                 if (responseText) break;
             } catch (e) {
                 errorDetails += `${modelName}: ${e.message}; `;
+                console.error(`Model ${modelName} failed:`, e.message);
             }
         }
 
-        if (!responseText) {
-            throw new Error("All models failed. Details: " + errorDetails);
-        }
+        if (!responseText) throw new Error("All models failed: " + errorDetails);
 
-        const text = responseText.replace(/[*_`#]/g, '');
+        const cleanText = responseText.replace(/[*_`#]/g, '').trim();
 
-        // === SAVE TO SUPABASE ===
+        // Save to DB (non-blocking - won't fail the response if DB is down)
         let activeChatId = chatId;
         try {
             if (!activeChatId) {
-                // Create new chat
-                const { data: newChat, error: chatError } = await supabase
+                const { data: newChat, error: chatErr } = await supabase
                     .from('chats')
-                    .insert([{ 
-                        user_id: user.id, 
-                        title: message.substring(0, 35) + (message.length > 35 ? '...' : '') 
-                    }])
-                    .select()
-                    .single();
-                
-                if (chatError) throw chatError;
-                activeChatId = newChat.id;
+                    .insert([{ user_id: user.id, title: message.substring(0, 40) }])
+                    .select().single();
+                if (!chatErr) activeChatId = newChat.id;
             }
-
-            // Save messages
-            await supabase.from('messages').insert([
-                { chat_id: activeChatId, role: 'user', content: message },
-                { chat_id: activeChatId, role: 'model', content: text }
-            ]);
-        } catch (dbError) {
-            console.error("Database error (continuing anyway):", dbError);
+            if (activeChatId) {
+                await supabase.from('messages').insert([
+                    { chat_id: activeChatId, role: 'user', content: message },
+                    { chat_id: activeChatId, role: 'model', content: cleanText }
+                ]);
+            }
+        } catch (dbErr) {
+            console.error("DB save error (non-fatal):", dbErr.message);
         }
 
-        res.status(200).json({ 
-            response: text, 
-            chatId: activeChatId,
-            v: "2.1" 
-        });
+        res.status(200).json({ response: cleanText, chatId: activeChatId });
+
     } catch (error) {
-        console.error('Final Gemini API Error:', error);
-        res.status(500).json({ 
-            error: "AI Error", 
-            details: error.message
-        });
+        console.error('Gemini Error:', error.message);
+        res.status(500).json({ error: "AI Error: " + error.message });
     }
 };
