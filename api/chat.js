@@ -99,10 +99,10 @@ Write in plain text only - absolutely no markdown.`;
   }
 
   const models = [
-    { v: 'v1beta', m: 'gemini-1.5-flash' },
-    { v: 'v1beta', m: 'gemini-2.0-flash-exp' },
-    { v: 'v1', m: 'gemini-1.5-flash' },
-    { v: 'v1beta', m: 'gemini-1.5-pro' }
+    { v: 'v1beta', m: 'gemini-3.1-flash-lite' },
+    { v: 'v1beta', m: 'gemini-2.5-flash' },
+    { v: 'v1beta', m: 'gemini-2.0-flash' },
+    { v: 'v1beta', m: 'gemini-flash-latest' }
   ];
 
   let responseText = '';
