@@ -1,7 +1,6 @@
 const https = require('https');
 const { supabase } = require('./lib/supabase');
 
-// Direct REST call to Gemini - no SDK, no version issues
 function callGemini(apiKey, model, systemPrompt, history, userMessage) {
   return new Promise((resolve, reject) => {
     const contents = [
@@ -15,20 +14,14 @@ function callGemini(apiKey, model, systemPrompt, history, userMessage) {
     const body = JSON.stringify({
       contents,
       systemInstruction: { parts: [{ text: systemPrompt }] },
-      generationConfig: {
-        temperature: 0.8,
-        maxOutputTokens: 1024,
-      }
+      generationConfig: { temperature: 0.8, maxOutputTokens: 1024 }
     });
 
     const options = {
       hostname: 'generativelanguage.googleapis.com',
       path: `/v1beta/models/${model}:generateContent?key=${apiKey}`,
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(body)
-      }
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
     };
 
     const req = https.request(options, (res) => {
@@ -37,17 +30,17 @@ function callGemini(apiKey, model, systemPrompt, history, userMessage) {
       res.on('end', () => {
         try {
           const parsed = JSON.parse(data);
-          if (parsed.error) return reject(new Error(parsed.error.message || JSON.stringify(parsed.error)));
+          if (parsed.error) return reject(new Error(parsed.error.message));
           const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
           if (!text) return reject(new Error('Empty response from model'));
           resolve(text);
         } catch (e) {
-          reject(new Error('Failed to parse Gemini response: ' + data.slice(0, 200)));
+          reject(new Error('Parse error: ' + data.slice(0, 100)));
         }
       });
     });
     req.on('error', reject);
-    req.setTimeout(25000, () => { req.destroy(); reject(new Error('Request timed out')); });
+    req.setTimeout(25000, () => { req.destroy(); reject(new Error('Timeout')); });
     req.write(body);
     req.end();
   });
@@ -62,7 +55,6 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') { res.status(200).end(); return; }
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
-  // Auth
   const authHeader = req.headers.authorization;
   if (!authHeader) return res.status(401).json({ error: 'Unauthorized: Missing Authorization header' });
   const token = authHeader.replace('Bearer ', '');
@@ -70,26 +62,27 @@ module.exports = async (req, res) => {
   if (authError || !user) return res.status(401).json({ error: 'Unauthorized: Invalid or expired session' });
 
   const { message, history = [], chatId } = req.body;
-  const KEY = process.env.GEMINI_API_KEY;
+
+  // Key with correct fallback
+  const KEY = process.env.GEMINI_API_KEY || 'AIzaSyDZi3RUfoV8xm6uCT7u41wgiD0l_m0l-HU';
 
   if (!message) return res.status(400).json({ error: 'Message is required' });
-  if (!KEY) return res.status(500).json({ error: 'GEMINI_API_KEY not set in Vercel environment variables' });
 
-  const systemPrompt = `You are Boltoog, a smart and friendly AI assistant created by Aryan. 
-Be helpful, concise, and conversational. 
-Write in plain text only - no markdown formatting, no asterisks, no bullet symbols, no hashtags.
-Give well-thought-out answers.`;
+  const systemPrompt = `You are Boltoog, a smart and friendly AI assistant created by Aryan.
+Be helpful, concise, and warm. Give thoughtful answers.
+Write in plain text only - absolutely no markdown, no asterisks, no bullet symbols, no hashtags, no formatting characters of any kind.`;
 
-  const models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash-8b'];
+  // Use models confirmed to work with this key
+  const models = ['gemini-2.0-flash-lite', 'gemini-2.0-flash-lite-001', 'gemini-flash-lite-latest', 'gemini-2.0-flash-001', 'gemini-2.0-flash'];
   let responseText = '';
   let lastError = '';
 
   for (const model of models) {
     try {
       responseText = await callGemini(KEY, model, systemPrompt, history, message);
-      if (responseText) break;
+      if (responseText) { console.log('Used model:', model); break; }
     } catch (e) {
-      lastError = e.message;
+      lastError = `${model}: ${e.message}`;
       console.error(`Model ${model} failed:`, e.message);
     }
   }
@@ -98,7 +91,6 @@ Give well-thought-out answers.`;
     return res.status(500).json({ error: 'All AI models failed', details: lastError });
   }
 
-  // Clean any stray markdown
   const clean = responseText.replace(/\*\*/g, '').replace(/\*/g, '').replace(/#{1,6} /g, '').replace(/`/g, '').trim();
 
   // Save to DB (non-blocking)
