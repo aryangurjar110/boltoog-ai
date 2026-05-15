@@ -292,6 +292,8 @@
     input.addEventListener('keypress', (e) => { if(e.key === 'Enter' && !btn.disabled) send(); });
     btn.addEventListener('click', send);
 
+    let history = [];
+
     async function send() {
       const text = input.value.trim();
       if (!text || loading) return;
@@ -307,14 +309,19 @@
         const res = await fetch('/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: text })
+          body: JSON.stringify({ 
+            message: text,
+            history: history 
+          })
         });
         const data = await res.json();
         loader.remove();
         
-        // Fix for "undefined" - check if response exists, otherwise show error
         if (data.response) {
           add('ai', data.response);
+          // Update history
+          history.push({ role: "user", parts: [{ text: text }] });
+          history.push({ role: "model", parts: [{ text: data.response }] });
         } else {
           add('ai', "Error: " + (data.error || "Unknown response from server"));
         }

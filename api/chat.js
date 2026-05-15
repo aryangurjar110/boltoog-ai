@@ -20,7 +20,7 @@ module.exports = async (req, res) => {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    const { message } = req.body;
+    const { message, history } = req.body;
     const KEY = process.env.GEMINI_API_KEY;
 
     if (!message) {
@@ -51,10 +51,14 @@ module.exports = async (req, res) => {
             try {
                 const model = genAI.getGenerativeModel({ 
                     model: modelName, 
-                    systemInstruction: "You are Boltoog, a helpful AI created by Aryan. Your responses must be in plain text only. No markdown. IMPORTANT: Do not introduce yourself or mention you were created by Aryan in every message. Only do so if the user asks 'who are you' or if it is the very beginning of the conversation. Otherwise, just answer the user's question directly."
+                    systemInstruction: "You are Boltoog, a helpful AI created by Aryan. Your responses must be in plain text only. No markdown. IMPORTANT: Do not introduce yourself or mention you were created by Aryan in every message. Only do so if it is the very first message. If there is history, assume you have already introduced yourself."
                 });
 
-                const result = await model.generateContent(message);
+                const chat = model.startChat({
+                    history: history || [],
+                });
+
+                const result = await chat.sendMessage(message);
                 const response = await result.response;
                 responseText = response.text();
                 
