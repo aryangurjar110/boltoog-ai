@@ -230,10 +230,14 @@
     <div class="login-container">
         <div class="login-card">
             <div class="logo">⚡</div>
-            <h1>Welcome Back</h1>
-            <p class="subtitle">Log in to your Boltoog AI account</p>
+            <h1 id="mainTitle">Create Account</h1>
+            <p class="subtitle" id="mainSubtitle">Join Boltoog AI today</p>
 
             <form id="loginForm">
+                <div class="input-group" id="nameGroup">
+                    <label for="fullName">Full Name</label>
+                    <input type="text" id="fullName" placeholder="Aryan Gurjar" required>
+                </div>
                 <div class="input-group">
                     <label for="email">Email Address</label>
                     <input type="email" id="email" placeholder="name@example.com" required>
@@ -251,13 +255,13 @@
                     </div>
                 </div>
                 
-                <div id="errorMsg" class="error-msg">Invalid email or password</div>
+                <div id="errorMsg" class="error-msg"></div>
 
-                <button type="submit" class="btn btn-primary">Sign In</button>
+                <button type="submit" class="btn btn-primary" id="loginBtn">Sign Up</button>
             </form>
 
             <p class="footer-text" id="footerText">
-                Don't have an account? <a href="#" id="modeToggle">Sign up for free</a>
+                Already have an account? <a href="#" id="modeToggle">Sign in</a>
             </p>
 
         </div>
@@ -284,29 +288,65 @@
         });
         const loginForm = document.getElementById('loginForm');
         const errorMsg = document.getElementById('errorMsg');
-        const loginBtn = document.querySelector('.btn-primary');
+        const loginBtn = document.getElementById('loginBtn');
         const footerText = document.getElementById('footerText');
+        const nameGroup = document.getElementById('nameGroup');
+        const fullNameInput = document.getElementById('fullName');
+        const mainTitle = document.getElementById('mainTitle');
+        const mainSubtitle = document.getElementById('mainSubtitle');
         
-        let isSignUp = false;
+        let isSignUp = true; // Default to Sign Up
 
         // Toggle Sign Up / Sign In
         footerText.addEventListener('click', (e) => {
             if (e.target.id === 'modeToggle') {
                 e.preventDefault();
                 isSignUp = !isSignUp;
-                document.querySelector('h1').textContent = isSignUp ? 'Create Account' : 'Welcome Back';
-                document.querySelector('.subtitle').textContent = isSignUp ? 'Join Boltoog AI today' : 'Log in to your Boltoog AI account';
+                mainTitle.textContent = isSignUp ? 'Create Account' : 'Welcome Back';
+                mainSubtitle.textContent = isSignUp ? 'Join Boltoog AI today' : 'Log in to your Boltoog AI account';
                 loginBtn.textContent = isSignUp ? 'Sign Up' : 'Sign In';
+                nameGroup.style.display = isSignUp ? 'block' : 'none';
+                fullNameInput.required = isSignUp;
                 footerText.innerHTML = isSignUp 
                     ? 'Already have an account? <a href="#" id="modeToggle">Sign in</a>' 
                     : "Don't have an account? <a href=\"#\" id=\"modeToggle\">Sign up for free</a>";
             }
         });
 
+        function showSuccessToast(message) {
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed; top: 20px; right: 20px;
+                background: linear-gradient(135deg, #7c3aed, #6d28d9);
+                color: white; padding: 16px 24px; border-radius: 12px;
+                box-shadow: 0 10px 30px rgba(124, 58, 237, 0.4);
+                z-index: 9999; animation: slideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+                font-weight: 600; font-size: 14px;
+            `;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            // Add keyframes if not exists
+            if (!document.getElementById('toastStyles')) {
+                const style = document.createElement('style');
+                style.id = 'toastStyles';
+                style.textContent = `@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }`;
+                document.head.appendChild(style);
+            }
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-20px)';
+                toast.style.transition = 'all 0.5s ease';
+                setTimeout(() => toast.remove(), 500);
+            }, 3000);
+        }
+
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
+            const fullName = fullNameInput.value;
 
             loginBtn.disabled = true;
             loginBtn.textContent = isSignUp ? 'Creating account...' : 'Signing in...';
@@ -314,7 +354,11 @@
             try {
                 let result;
                 if (isSignUp) {
-                    result = await supabaseClient.auth.signUp({ email, password });
+                    result = await supabaseClient.auth.signUp({ 
+                        email, 
+                        password,
+                        options: { data: { full_name: fullName } }
+                    });
                 } else {
                     result = await supabaseClient.auth.signInWithPassword({ email, password });
                 }
@@ -324,10 +368,12 @@
                     errorMsg.style.display = 'block';
                 } else {
                     if (isSignUp && !result.data.session) {
-                        alert("Sign up successful! Please check your email for a confirmation link.");
+                        showSuccessToast("Success! Check your email to confirm.");
                     } else if (result.data.session) {
+                        const name = result.data.user.user_metadata.full_name || "there";
+                        showSuccessToast(`Welcome back, ${name}!`);
                         localStorage.setItem('boltoog_session', JSON.stringify(result.data.session));
-                        window.location.href = '/';
+                        setTimeout(() => { window.location.href = '/'; }, 1500);
                     }
                 }
             } catch (err) {
