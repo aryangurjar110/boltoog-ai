@@ -198,12 +198,20 @@ async function init() {
 
 async function loadHistory() {
   try {
+    const isGuest = localStorage.getItem('boltoog_guest') === 'true';
+    if (isGuest) {
+      sbList.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted);font-size:13px">Login to save history</div>';
+      return;
+    }
+
     const r = await fetch('/api/history', { headers: { Authorization: `Bearer ${session.access_token}` } });
-    const d = await r.json();
     if (r.status === 401) { logout(); return; }
+    const d = await r.json();
     allChats = d.chats || [];
     renderHistory(allChats);
-  } catch(e) {}
+  } catch(e) {
+    sbList.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted);font-size:13px">Failed to load history</div>';
+  }
 }
 
 function renderHistory(chats) {
@@ -237,8 +245,10 @@ function addSbItem(c) {
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
     </div>
     <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.title || 'Untitled Chat'}</span>
-    <button class="del-chat" onclick="event.stopPropagation();delChat('${c.id}')">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+    <button class="del-chat" onclick="event.stopPropagation();delChat('${c.id}')" title="Delete">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/>
+      </svg>
     </button>`;
   el.onclick = () => openChat(c.id);
   sbList.appendChild(el);
