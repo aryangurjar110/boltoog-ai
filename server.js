@@ -37,7 +37,7 @@ app.post('/chat', async (req, res) => {
         }
         const text = response.text().replace(/[*_`#]/g, '');
 
-        res.json({ response: text });
+        res.json({ response: text, v: "1.1" });
     } catch (error) {
         console.error('Gemini API Error Detail:', error);
         res.status(500).json({ 
