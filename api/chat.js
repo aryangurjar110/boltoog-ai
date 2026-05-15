@@ -35,6 +35,7 @@ module.exports = async (req, res) => {
     }
 
     try {
+        console.log("History received:", JSON.stringify(history));
         const genAI = new GoogleGenerativeAI(KEY);
         
         const modelsToTry = [
