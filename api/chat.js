@@ -37,7 +37,13 @@ module.exports = async (req, res) => {
     try {
         const genAI = new GoogleGenerativeAI(KEY);
         
-        const modelsToTry = ["gemini-1.5-flash-latest", "gemini-1.5-flash", "gemini-pro"];
+        const modelsToTry = [
+            "gemini-2.0-flash", 
+            "gemini-2.0-flash-lite",
+            "gemini-flash-latest", 
+            "gemini-pro-latest",
+            "gemini-3.1-flash-lite"
+        ];
         let responseText = "";
         let errorDetails = "";
 
