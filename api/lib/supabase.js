@@ -1,12 +1,8 @@
 const { createClient } = require('@supabase/supabase-js');
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.SUPABASE_URL || 'https://tbdcwlwxqsfogrgyxjwx.supabase.co';
+const supabaseKey = process.env.SUPABASE_ANON_KEY || 'sb_publishable_il30olEoujJPa6BLrnV-bw_Jr6GruEs';
 
-if (!supabaseUrl || !supabaseKey) {
-  console.warn('Supabase credentials missing. Please set SUPABASE_URL and SUPABASE_ANON_KEY.');
-}
-
-const supabase = createClient(supabaseUrl || '', supabaseKey || '');
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 module.exports = { supabase };
