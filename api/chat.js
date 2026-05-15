@@ -48,15 +48,27 @@ module.exports = async (req, res) => {
         let responseText = "";
         let errorDetails = "";
 
+        const isFirstMessage = !history || history.length === 0;
+        const baseInstruction = "You are Boltoog, a helpful AI created by Aryan. Your responses must be in plain text only. No markdown.";
+        const currentInstruction = isFirstMessage 
+            ? `${baseInstruction} Introduce yourself once.`
+            : `${baseInstruction} DO NOT introduce yourself or mention Aryan. Answer directly.`;
+
         for (const modelName of modelsToTry) {
             try {
                 const model = genAI.getGenerativeModel({ 
                     model: modelName, 
-                    systemInstruction: "You are Boltoog, a helpful AI created by Aryan. Your responses must be in plain text only. No markdown. IMPORTANT: Do not introduce yourself or mention you were created by Aryan in every message. Only do so if it is the very first message. If there is history, assume you have already introduced yourself."
+                    systemInstruction: currentInstruction
                 });
 
+                // Ensure history has the correct structure
+                const safeHistory = (history || []).map(h => ({
+                    role: h.role,
+                    parts: Array.isArray(h.parts) ? h.parts : [{ text: h.parts }]
+                }));
+
                 const chat = model.startChat({
-                    history: history || [],
+                    history: safeHistory,
                 });
 
                 const result = await chat.sendMessage(message);
