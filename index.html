@@ -315,9 +315,11 @@ async function send() {
       chatHistory.push({ role: 'model', parts: [{ text: d.response }] });
       if (!currentId) { currentId = d.chatId; loadHistory(); }
     } else {
+      const msg = d.error + (d.details ? '\n\nDetails: ' + d.details : '');
+      alert('AI ERROR:\n' + msg);
       const errEl = document.createElement('div');
       errEl.className = 'bubble err';
-      errEl.textContent = 'Error: ' + (d.error || 'Failed to get response');
+      errEl.textContent = 'Error: ' + d.error;
       chatEl.appendChild(errEl);
     }
   } catch (e) {
