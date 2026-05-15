@@ -94,12 +94,15 @@ module.exports = async (req, res) => {
 Be helpful, concise, and warm. Give thoughtful answers.
 Write in plain text only - absolutely no markdown.`;
 
-  // Try all versions and all models
+  if (!KEY) {
+    return res.status(500).json({ error: 'API Configuration Missing', details: 'GEMINI_API_KEY is not set in Vercel environment variables.' });
+  }
+
   const models = [
-    { v: 'v1beta', m: 'gemini-3.1-flash-lite' },
-    { v: 'v1beta', m: 'gemini-2.5-flash' },
-    { v: 'v1beta', m: 'gemini-2.0-flash' },
-    { v: 'v1beta', m: 'gemini-flash-latest' }
+    { v: 'v1beta', m: 'gemini-1.5-flash' },
+    { v: 'v1beta', m: 'gemini-2.0-flash-exp' },
+    { v: 'v1', m: 'gemini-1.5-flash' },
+    { v: 'v1beta', m: 'gemini-1.5-pro' }
   ];
 
   let responseText = '';
@@ -109,17 +112,21 @@ Write in plain text only - absolutely no markdown.`;
     try {
       const callWithVersion = (v, m) => {
         return new Promise((resolve, reject) => {
-          const contents = [
-            ...history.map(h => ({
-              role: h.role === 'model' ? 'model' : 'user',
-              parts: [{ text: String(h.parts[0]?.text || h.parts) }]
-            })),
-            { role: 'user', parts: [{ text: message }] }
-          ];
+          // Robust history parsing
+          const contents = history.map(h => {
+            let txt = '';
+            if (Array.isArray(h.parts)) txt = h.parts[0]?.text || '';
+            else if (typeof h.parts === 'string') txt = h.parts;
+            else if (h.content) txt = h.content;
+            return { role: h.role === 'model' || h.role === 'assistant' ? 'model' : 'user', parts: [{ text: String(txt) }] };
+          }).filter(h => h.parts[0].text);
+          
+          contents.push({ role: 'user', parts: [{ text: message }] });
+
           const body = JSON.stringify({
             contents,
             systemInstruction: { parts: [{ text: systemPrompt }] },
-            generationConfig: { temperature: 0.7, maxOutputTokens: 1024 },
+            generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
             safetySettings: [
               { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
               { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
@@ -131,7 +138,7 @@ Write in plain text only - absolutely no markdown.`;
             hostname: 'generativelanguage.googleapis.com',
             path: `/${v}/models/${m}:generateContent?key=${KEY}`,
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
+            headers: { 'Content-Type': 'application/json' }
           };
           const req = https.request(options, (res) => {
             let data = '';
@@ -139,15 +146,15 @@ Write in plain text only - absolutely no markdown.`;
             res.on('end', () => {
               try {
                 const parsed = JSON.parse(data);
-                if (parsed.error) return reject(new Error(`${m}(${v}): ${parsed.error.message}`));
+                if (parsed.error) return reject(new Error(`${m}: ${parsed.error.message}`));
                 const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (!text) return reject(new Error(`${m}: Empty response`));
+                if (!text) return reject(new Error(`${m}: No text in response`));
                 resolve(text);
-              } catch (e) { reject(new Error(`${m}: JSON Parse error`)); }
+              } catch (e) { reject(new Error(`${m}: Invalid JSON`)); }
             });
           });
-          req.on('error', (e) => reject(new Error(`${m}: Network ${e.message}`)));
-          req.setTimeout(12000, () => { req.destroy(); reject(new Error(`${m}: Timeout`)); });
+          req.on('error', (e) => reject(new Error(`${m}: ${e.message}`)));
+          req.setTimeout(25000, () => { req.destroy(); reject(new Error(`${m}: Timeout`)); });
           req.write(body); req.end();
         });
       };
@@ -156,13 +163,12 @@ Write in plain text only - absolutely no markdown.`;
       if (responseText) break;
     } catch (e) {
       errorLog.push(e.message);
-      console.error('AI Attempt Failed:', e.message);
     }
   }
 
   if (!responseText) {
     return res.status(500).json({ 
-      error: 'All AI models failed', 
+      error: 'AI Engine Unavailable', 
       details: errorLog.join(' | ') 
     });
   }
