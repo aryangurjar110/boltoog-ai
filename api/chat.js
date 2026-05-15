@@ -61,22 +61,33 @@ module.exports = async (req, res) => {
   const { data: { user }, error: authError } = await supabase.auth.getUser(token);
   if (authError || !user) return res.status(401).json({ error: 'Unauthorized: Invalid or expired session' });
 
-  const { message, history = [], chatId } = req.body;
+  // New User Key
+  const KEY = process.env.GEMINI_API_KEY || 'AIzaSyBjUfZze4K-QxsCaIPeUzJoohIBMlX2i1I';
 
-  // Key with correct fallback
-  const KEY = process.env.GEMINI_API_KEY || 'AIzaSyDZi3RUfoV8xm6uCT7u41wgiD0l_m0l-HU';
+  const { message, history = [], chatId } = req.body;
 
   if (!message) return res.status(400).json({ error: 'Message is required' });
 
+  // 1. FAST SAVING: Create chat/message entry IMMEDIATELY before AI call
+  let activeChatId = chatId;
+  try {
+    if (!activeChatId) {
+      const { data: newChat } = await supabase
+        .from('chats')
+        .insert([{ user_id: user.id, title: message.substring(0, 40) }])
+        .select().single();
+      if (newChat) activeChatId = newChat.id;
+    }
+  } catch (dbErr) { console.error('Initial DB error:', dbErr.message); }
+
   const systemPrompt = `You are Boltoog, a smart and friendly AI assistant created by Aryan.
 Be helpful, concise, and warm. Give thoughtful answers.
-Write in plain text only - absolutely no markdown, no asterisks, no bullet symbols, no hashtags, no formatting characters of any kind.`;
+Write in plain text only - absolutely no markdown, no asterisks, no bullet symbols, no hashtags.`;
 
   // Try all versions and all models
   const models = [
     { v: 'v1beta', m: 'gemini-1.5-flash-latest' },
     { v: 'v1beta', m: 'gemini-2.0-flash-lite-preview-02-05' },
-    { v: 'v1beta', m: 'gemini-2.0-flash-lite' },
     { v: 'v1', m: 'gemini-1.5-flash' },
     { v: 'v1beta', m: 'gemini-1.5-flash' },
     { v: 'v1beta', m: 'gemini-1.0-pro' }
@@ -149,24 +160,14 @@ Write in plain text only - absolutely no markdown, no asterisks, no bullet symbo
 
   const clean = responseText.replace(/\*\*/g, '').replace(/\*/g, '').replace(/#{1,6} /g, '').replace(/`/g, '').trim();
 
-  // Save to DB (non-blocking)
-  let activeChatId = chatId;
-  try {
-    if (!activeChatId) {
-      const { data: newChat } = await supabase
-        .from('chats')
-        .insert([{ user_id: user.id, title: message.substring(0, 45) }])
-        .select().single();
-      if (newChat) activeChatId = newChat.id;
-    }
-    if (activeChatId) {
+  // 2. SAVE RESPONSE: Store model response in DB
+  if (activeChatId && responseText) {
+    try {
       await supabase.from('messages').insert([
         { chat_id: activeChatId, role: 'user', content: message },
         { chat_id: activeChatId, role: 'model', content: clean }
       ]);
-    }
-  } catch (dbErr) {
-    console.error('DB error (non-fatal):', dbErr.message);
+    } catch (dbErr) { console.error('Secondary DB error:', dbErr.message); }
   }
 
   res.status(200).json({ response: clean, chatId: activeChatId });
