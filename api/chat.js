@@ -61,8 +61,8 @@ module.exports = async (req, res) => {
   const { data: { user }, error: authError } = await supabase.auth.getUser(token);
   if (authError || !user) return res.status(401).json({ error: 'Unauthorized: Invalid or expired session' });
 
-  // New User Key
-  const KEY = process.env.GEMINI_API_KEY || 'AIzaSyBjUfZze4K-QxsCaIPeUzJoohIBMlX2i1I';
+  // IMPORTANT: Key must be set in Vercel Environment Variables as GEMINI_API_KEY
+  const KEY = process.env.GEMINI_API_KEY;
 
   const { message, history = [], chatId } = req.body;
 
