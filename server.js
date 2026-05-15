@@ -23,14 +23,23 @@ app.post('/chat', async (req, res) => {
     try {
         const genAI = new GoogleGenerativeAI(KEY);
         
-        // Use gemini-pro if gemini-1.5-flash gives a 404
+        // Use gemini-1.5-flash for better performance
         const model = genAI.getGenerativeModel({ 
             model: "gemini-1.5-flash", 
             systemInstruction: "You are Boltoog, a helpful AI created by Aryan. Plain text only."
         });
 
         const result = await model.generateContent(message);
-        const response = await result.response;
+        const response = result.response;
+        
+        // Check if response exists and has text
+        if (!response || !response.text) {
+            return res.status(500).json({ 
+                error: "AI Error", 
+                details: "No response text generated" 
+            });
+        }
+        
         const text = response.text().replace(/[*_`#]/g, '');
 
         res.json({ response: text });
