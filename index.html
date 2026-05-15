@@ -154,6 +154,59 @@ html, body {
   position: fixed; inset: 0; background: var(--bg); z-index: 1000; 
   display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
+
+/* DROPDOWN MENU */
+.sb-item { position: relative; }
+.menu-btn { background:none; border:none; color:var(--muted); cursor:pointer; padding:5px; border-radius:6px; transition:0.2s; }
+.menu-btn:hover { background:var(--glass); color:#fff; }
+
+.dropdown {
+  position: absolute; right: 10px; top: 45px; width: 140px;
+  background: rgba(20, 20, 22, 0.95); backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border); border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 1000;
+  display: none; flex-direction: column; padding: 6px;
+  animation: menuReveal 0.2s var(--ease);
+}
+@keyframes menuReveal { from { opacity:0; transform: translateY(-10px); } to { opacity:1; transform: none; } }
+.dropdown.open { display: flex; }
+
+.dropdown-item {
+  padding: 10px 14px; border-radius: 10px; font-size: 13.5px;
+  color: var(--sub); display: flex; align-items: center; gap: 10px;
+  cursor: pointer; transition: 0.2s;
+}
+.dropdown-item:hover { background: var(--glass); color: #fff; }
+.dropdown-item.danger { color: #f87171; }
+.dropdown-item.danger:hover { background: rgba(248, 113, 113, 0.1); }
+
+/* RENAME MODAL */
+.modal {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.95);
+  background: var(--panel); backdrop-filter: blur(40px);
+  border: 1px solid var(--glass-border); border-radius: 20px;
+  padding: 24px; width: 90%; max-width: 340px; z-index: 1000;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.6); opacity: 0; pointer-events: none;
+  transition: 0.3s var(--ease);
+}
+.modal.open { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
+.modal h3 { font-size: 18px; margin-bottom: 15px; }
+.modal input {
+  width: 100%; background: var(--glass); border: 1px solid var(--glass-border);
+  border-radius: 12px; padding: 12px; color: #fff; font-size: 15px; outline: none;
+  margin-bottom: 20px; transition: 0.2s; font-family: inherit;
+}
+.modal input:focus { border-color: var(--accent); }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.modal-btn {
+  padding: 10px 16px; border-radius: 10px; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: 0.2s; border: none; font-family: inherit;
+}
+.modal-btn.cancel { background: transparent; color: var(--sub); }
+.modal-btn.cancel:hover { color: #fff; }
+.modal-btn.save { background: var(--accent); color: #000; }
+.modal-btn.save:hover { opacity: 0.9; transform: scale(0.98); }
+
 </style>
 </head>
 <body>
@@ -163,6 +216,15 @@ html, body {
 <div id="splash">
   <div class="logo-sq" style="width:80px; height:80px; font-size:40px;">⚡</div>
   <h1 style="margin-top:30px; letter-spacing:8px; font-size:12px; font-weight:700; color:var(--muted)">BOLTOOG PREMIUM</h1>
+</div>
+
+<div id="renameModal" class="modal">
+  <h3>Rename Chat</h3>
+  <input type="text" id="renameInput" placeholder="Enter new title">
+  <div class="modal-actions">
+    <button class="modal-btn cancel" onclick="closeModal()">Cancel</button>
+    <button class="modal-btn save" id="saveRenameBtn">Save</button>
+  </div>
 </div>
 
 <div id="app-root">
@@ -308,7 +370,17 @@ function renderH(chats) {
       el.innerHTML = `
         <div class="sb-item-icon">💬</div>
         <span style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.title || 'Chat'}</span>
-        <button style="background:none; border:none; color:var(--muted); cursor:pointer;" onclick="event.stopPropagation();del('${c.id}')">⋮</button>`;
+        <button class="menu-btn" onclick="event.stopPropagation();toggleMenu('${c.id}')">⋮</button>
+        <div class="dropdown" id="menu-${c.id}">
+          <div class="dropdown-item" onclick="event.stopPropagation();rename('${c.id}', '${c.title.replace(/'/g, "\\'")}')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Rename
+          </div>
+          <div class="dropdown-item danger" onclick="event.stopPropagation();del('${c.id}')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            Delete
+          </div>
+        </div>`;
       el.onclick = () => open(c.id);
       sbList.appendChild(el);
     });
@@ -337,6 +409,57 @@ async function del(id) {
   await fetch(`/api/delete-chat?id=${id}`, { method:'DELETE', headers:{ Authorization:`Bearer ${session.access_token}` } });
   if (currId === id) location.reload(); else loadH();
 }
+
+function toggleMenu(id) {
+  document.querySelectorAll('.dropdown').forEach(d => {
+    if (d.id !== `menu-${id}`) d.classList.remove('open');
+  });
+  const m = document.getElementById(`menu-${id}`);
+  m.classList.toggle('open');
+}
+
+let activeRenameId = null;
+const modal = document.getElementById('renameModal');
+const rInput = document.getElementById('renameInput');
+const saveBtn = document.getElementById('saveRenameBtn');
+
+function rename(id, old) {
+  activeRenameId = id;
+  rInput.value = old;
+  overlay.classList.add('open');
+  modal.classList.add('open');
+  rInput.focus();
+}
+
+function closeModal() {
+  modal.classList.remove('open');
+  if (!sidebar.classList.contains('open')) overlay.classList.remove('open');
+  activeRenameId = null;
+}
+
+saveBtn.onclick = async () => {
+  const n = rInput.value.trim();
+  const id = activeRenameId;
+  closeModal();
+  if (!n || !id) return;
+  
+  const r = await fetch('/api/rename-chat', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+    body: JSON.stringify({ id, title: n })
+  });
+  
+  if (r.ok) {
+    if (currId === id) document.getElementById('activeChatTitle').textContent = n;
+    loadH();
+  }
+};
+
+rInput.onkeydown = (e) => { if (e.key === 'Enter') saveBtn.click(); if (e.key === 'Escape') closeModal(); };
+
+document.addEventListener('click', (e) => {
+  document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('open'));
+});
 
 function addB(type, text) {
   const g = document.createElement('div');
@@ -394,7 +517,11 @@ sendBtn.onclick = send;
 document.getElementById('menuBtn').onclick = () => { sidebar.classList.add('open'); overlay.classList.add('open'); };
 document.getElementById('newBtn').onclick = () => { location.reload(); };
 document.getElementById('logoutBtn').onclick = logout;
-overlay.onclick = () => { sidebar.classList.remove('open'); overlay.classList.remove('open'); };
+overlay.onclick = () => { 
+  sidebar.classList.remove('open'); 
+  closeModal();
+  overlay.classList.remove('open'); 
+};
 document.getElementById('historySearch').oninput = (e) => {
   const q = e.target.value.toLowerCase();
   renderH(allChats.filter(c => (c.title||'').toLowerCase().includes(q)));
