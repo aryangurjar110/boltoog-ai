@@ -23,27 +23,44 @@ app.post('/chat', async (req, res) => {
     try {
         const genAI = new GoogleGenerativeAI(KEY);
         
-        // Use gemini-1.5-flash for better performance
-        const model = genAI.getGenerativeModel({ 
-            model: "gemini-1.5-flash-latest", 
-            systemInstruction: "You are Boltoog, a helpful AI created by Aryan. Your responses must be in plain text only. No markdown, no bolding, no bullet points."
-        });
+        const modelsToTry = ["gemini-1.5-flash-latest", "gemini-1.5-flash", "gemini-pro"];
+        let responseText = "";
+        let errorDetails = "";
 
-        const result = await model.generateContent(message);
-        const response = await result.response;
-        
-        if (!response.text()) {
-            throw new Error("Empty response from AI");
+        for (const modelName of modelsToTry) {
+            try {
+                console.log(`Trying model: ${modelName}`);
+                const model = genAI.getGenerativeModel({ 
+                    model: modelName, 
+                    systemInstruction: "You are Boltoog, a helpful AI created by Aryan. Your responses must be in plain text only. No markdown."
+                });
+
+                const result = await model.generateContent(message);
+                const response = await result.response;
+                responseText = response.text();
+                
+                if (responseText) {
+                    console.log(`Success with model: ${modelName}`);
+                    break;
+                }
+            } catch (e) {
+                console.error(`Error with ${modelName}:`, e.message);
+                errorDetails += `${modelName}: ${e.message}; `;
+            }
         }
-        const text = response.text().replace(/[*_`#]/g, '');
 
-        res.json({ response: text, v: "1.1" });
+        if (!responseText) {
+            throw new Error("All models failed. Details: " + errorDetails);
+        }
+
+        const text = responseText.replace(/[*_`#]/g, '');
+
+        res.json({ response: text, v: "1.2" });
     } catch (error) {
-        console.error('Gemini API Error Detail:', error);
+        console.error('Final Gemini API Error:', error);
         res.status(500).json({ 
             error: "AI Error", 
-            details: error.message,
-            suggestion: "Check if the API key has access to gemini-1.5-flash-latest"
+            details: error.message
         });
     }
 });
