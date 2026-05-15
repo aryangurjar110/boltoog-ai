@@ -305,8 +305,17 @@
   <script>
     // === AUTH CHECK ===
     const sessionData = localStorage.getItem('boltoog_session');
-    if (!sessionData) window.location.href = '/login';
-    const session = JSON.parse(sessionData);
+    let session = null;
+    try {
+      session = sessionData ? JSON.parse(sessionData) : null;
+    } catch(e) { session = null; }
+
+    if (!session || !session.access_token) {
+      localStorage.removeItem('boltoog_session');
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    }
 
     const chatArea = document.getElementById('chatArea');
     const historyList = document.getElementById('historyList');
@@ -354,6 +363,11 @@
         const res = await fetch('/api/history', {
           headers: { 'Authorization': `Bearer ${session.access_token}` }
         });
+        if (res.status === 401) {
+          localStorage.removeItem('boltoog_session');
+          window.location.href = '/login';
+          return;
+        }
         const data = await res.json();
         if (data.chats) {
           historyList.innerHTML = '';
@@ -379,6 +393,11 @@
         const res = await fetch(`/api/chat-details?id=${id}`, {
           headers: { 'Authorization': `Bearer ${session.access_token}` }
         });
+        if (res.status === 401) {
+          localStorage.removeItem('boltoog_session');
+          window.location.href = '/login';
+          return;
+        }
         const data = await res.json();
         chatArea.innerHTML = '';
         chatHistory = [];
@@ -414,6 +433,11 @@
           },
           body: JSON.stringify({ message: text, history: chatHistory, chatId: currentChatId })
         });
+        if (res.status === 401) {
+          localStorage.removeItem('boltoog_session');
+          window.location.href = '/login';
+          return;
+        }
         const data = await res.json();
         typingEl.remove();
 
