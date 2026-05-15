@@ -40,34 +40,48 @@ module.exports = async (req, res) => {
 Give thoughtful, helpful answers in plain text only. Absolutely no markdown or asterisks.`;
 
   const models = [
-    'gemini-1.5-flash',
-    'gemini-2.0-flash-exp',
-    'gemini-1.5-pro',
-    'gemini-1.0-pro'
+    { v: 'v1beta', m: 'gemini-1.5-flash' },
+    { v: 'v1', m: 'gemini-1.5-flash' },
+    { v: 'v1beta', m: 'gemini-1.5-pro' },
+    { v: 'v1beta', m: 'gemini-1.0-pro' }
   ];
 
   let responseText = '';
   let lastError = '';
 
-  for (const m of models) {
+  for (const item of models) {
     try {
-      const contents = [
-        ...history.map(h => ({
-          role: h.role === 'model' || h.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: h.content || (Array.isArray(h.parts) ? h.parts[0]?.text : String(h.parts)) || '' }]
-        })).filter(h => h.parts[0].text),
-        { role: 'user', parts: [{ text: message }] }
-      ];
+      const { v, m } = item;
+      const contents = history.map(h => {
+        let txt = '';
+        if (Array.isArray(h.parts)) txt = h.parts[0]?.text || '';
+        else if (typeof h.parts === 'string') txt = h.parts;
+        else if (h.content) txt = h.content;
+        return { role: h.role === 'model' || h.role === 'assistant' ? 'model' : 'user', parts: [{ text: String(txt) }] };
+      }).filter(h => h.parts[0].text);
+      
+      contents.push({ role: 'user', parts: [{ text: message }] });
 
-      const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${KEY}`, {
+      const payload = {
+        contents,
+        generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
+        safetySettings: [{ category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },{ category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },{ category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },{ category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }]
+      };
+
+      // Only add systemInstruction if model is not 1.0
+      if (!m.includes('1.0')) {
+        payload.systemInstruction = { parts: [{ text: systemPrompt }] };
+      } else {
+        // For 1.0, inject system prompt into first message
+        if (contents.length > 0 && contents[0].role === 'user') {
+          contents[0].parts[0].text = systemPrompt + "\n\n" + contents[0].parts[0].text;
+        }
+      }
+
+      const resp = await fetch(`https://generativelanguage.googleapis.com/${v}/models/${m}:generateContent?key=${KEY}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents,
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
-          safetySettings: [{ category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },{ category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },{ category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },{ category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }]
-        })
+        body: JSON.stringify(payload)
       });
 
       const data = await resp.json();
