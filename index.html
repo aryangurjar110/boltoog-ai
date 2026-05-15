@@ -34,7 +34,11 @@
 
     * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 
-    html, body {
+    html {
+      height: 100%;
+      overflow: hidden;
+    }
+    body {
       height: 100%;
       overflow: hidden;
       background: var(--bg);
@@ -42,6 +46,9 @@
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
+      position: fixed;
+      width: 100%;
+      top: 0; left: 0;
     }
 
     #app {
@@ -49,6 +56,7 @@
       flex-direction: column;
       height: 100%;
       position: relative;
+      overflow: hidden;
     }
 
     /* === AMBIENT BACKGROUND === */
@@ -262,14 +270,16 @@
 
     /* === INPUT DOCK === */
     .input-dock {
-      position: relative; z-index: 100;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 100;
       padding: 12px 16px;
       padding-bottom: calc(12px + var(--safe-bottom));
       background: var(--glass);
       backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px);
       border-top: 1px solid var(--border);
-      flex-shrink: 0;
-      transition: padding 0.2s var(--ease);
+      transition: transform 0.15s ease-out;
+      transform: translateY(0);
     }
     .input-wrapper {
       max-width: 680px; margin: 0 auto;
@@ -438,26 +448,50 @@
     });
 
     // === MOBILE KEYBOARD HANDLING ===
-    if (window.visualViewport) {
-      let lastHeight = window.visualViewport.height;
-      window.visualViewport.addEventListener('resize', () => {
-        const h = window.visualViewport.height;
-        const diff = window.innerHeight - h;
-        if (diff > 100) {
-          // keyboard open
-          inputDock.style.paddingBottom = '12px';
-          document.getElementById('app').style.height = h + 'px';
-        } else {
-          inputDock.style.paddingBottom = '';
-          document.getElementById('app').style.height = '100%';
-        }
-        lastHeight = h;
-        smoothScroll();
-      });
-      window.visualViewport.addEventListener('scroll', () => {
-        window.scrollTo(0, 0);
-      });
+    const appEl = document.getElementById('app');
+    let keyboardOpen = false;
+
+    function handleViewport() {
+      if (!window.visualViewport) return;
+      const vv = window.visualViewport;
+      const keyboardHeight = window.innerHeight - vv.height;
+      const isOpen = keyboardHeight > 100;
+
+      // Move input dock above the keyboard
+      inputDock.style.transform = isOpen ? `translateY(-${keyboardHeight}px)` : 'translateY(0)';
+
+      // Adjust chat area bottom padding so messages aren't hidden
+      const dockHeight = inputDock.offsetHeight;
+      chatArea.style.paddingBottom = (isOpen ? keyboardHeight + dockHeight + 8 : dockHeight + 16) + 'px';
+
+      if (isOpen && !keyboardOpen) {
+        keyboardOpen = true;
+        setTimeout(smoothScroll, 50);
+      } else if (!isOpen && keyboardOpen) {
+        keyboardOpen = false;
+      }
+
+      // Prevent iOS page bounce
+      window.scrollTo(0, 0);
     }
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleViewport);
+      window.visualViewport.addEventListener('scroll', () => window.scrollTo(0, 0));
+    }
+
+    // Also handle focus/blur as fallback for older browsers
+    msgInput.addEventListener('focus', () => {
+      setTimeout(() => { handleViewport(); smoothScroll(); }, 300);
+    });
+    msgInput.addEventListener('blur', () => {
+      setTimeout(handleViewport, 100);
+    });
+
+    // Initial padding setup
+    requestAnimationFrame(() => {
+      chatArea.style.paddingBottom = (inputDock.offsetHeight + 16) + 'px';
+    });
 
     // === SEND MESSAGE ===
     async function send() {
