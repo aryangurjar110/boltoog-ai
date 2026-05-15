@@ -1,4 +1,5 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { supabase } = require('./lib/supabase');
 
 module.exports = async (req, res) => {
     // Set CORS headers
@@ -7,7 +8,7 @@ module.exports = async (req, res) => {
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
     res.setHeader(
         'Access-Control-Allow-Headers',
-        'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+        'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
     );
 
     // Handle OPTIONS request
@@ -20,7 +21,21 @@ module.exports = async (req, res) => {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    const { message, history } = req.body;
+    // Authenticate with Supabase
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+        return res.status(401).json({ error: "Unauthorized: Missing Authorization header" });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+        console.error("Auth error:", authError);
+        return res.status(401).json({ error: "Unauthorized: Invalid or expired session" });
+    }
+
+    const { message, history, chatId } = req.body;
     const KEY = process.env.GEMINI_API_KEY;
 
     if (!message) {
@@ -35,15 +50,13 @@ module.exports = async (req, res) => {
     }
 
     try {
-        console.log("History received:", JSON.stringify(history));
         const genAI = new GoogleGenerativeAI(KEY);
         
         const modelsToTry = [
             "gemini-2.0-flash", 
             "gemini-2.0-flash-lite",
             "gemini-flash-latest", 
-            "gemini-pro-latest",
-            "gemini-3.1-flash-lite"
+            "gemini-pro-latest"
         ];
         let responseText = "";
         let errorDetails = "";
@@ -61,16 +74,12 @@ module.exports = async (req, res) => {
                     systemInstruction: currentInstruction
                 });
 
-                // Ensure history has the correct structure
                 const safeHistory = (history || []).map(h => ({
                     role: h.role,
                     parts: Array.isArray(h.parts) ? h.parts : [{ text: h.parts }]
                 }));
 
-                const chat = model.startChat({
-                    history: safeHistory,
-                });
-
+                const chat = model.startChat({ history: safeHistory });
                 const result = await chat.sendMessage(message);
                 const response = await result.response;
                 responseText = response.text();
@@ -87,7 +96,38 @@ module.exports = async (req, res) => {
 
         const text = responseText.replace(/[*_`#]/g, '');
 
-        res.status(200).json({ response: text, v: "2.0" });
+        // === SAVE TO SUPABASE ===
+        let activeChatId = chatId;
+        try {
+            if (!activeChatId) {
+                // Create new chat
+                const { data: newChat, error: chatError } = await supabase
+                    .from('chats')
+                    .insert([{ 
+                        user_id: user.id, 
+                        title: message.substring(0, 35) + (message.length > 35 ? '...' : '') 
+                    }])
+                    .select()
+                    .single();
+                
+                if (chatError) throw chatError;
+                activeChatId = newChat.id;
+            }
+
+            // Save messages
+            await supabase.from('messages').insert([
+                { chat_id: activeChatId, role: 'user', content: message },
+                { chat_id: activeChatId, role: 'model', content: text }
+            ]);
+        } catch (dbError) {
+            console.error("Database error (continuing anyway):", dbError);
+        }
+
+        res.status(200).json({ 
+            response: text, 
+            chatId: activeChatId,
+            v: "2.1" 
+        });
     } catch (error) {
         console.error('Final Gemini API Error:', error);
         res.status(500).json({ 

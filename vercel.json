@@ -2,7 +2,9 @@
   "version": 2,
   "rewrites": [
     { "source": "/login", "destination": "/login.html" },
-    { "source": "/chat", "destination": "/api/chat" },
+    { "source": "/api/chat", "destination": "/api/chat" },
+    { "source": "/api/history", "destination": "/api/history" },
+    { "source": "/api/chat-details", "destination": "/api/chat-details" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

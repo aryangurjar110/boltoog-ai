@@ -271,50 +271,92 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
+        // === CONFIGURATION ===
+        // These will be loaded from environment or placeholders
+        const SUPABASE_URL = ''; 
+        const SUPABASE_ANON_KEY = '';
+
+        const supabaseClient = supabase.createClient(SUPABASE_URL || 'https://placeholder.supabase.co', SUPABASE_ANON_KEY || 'placeholder');
+
         const loginForm = document.getElementById('loginForm');
         const errorMsg = document.getElementById('errorMsg');
+        const loginBtn = document.querySelector('.btn-primary');
+        const footerText = document.querySelector('.footer-text');
+        
+        let isSignUp = false;
 
-        loginForm.addEventListener('submit', (e) => {
+        // Toggle Sign Up / Sign In
+        footerText.querySelector('a').addEventListener('click', (e) => {
             e.preventDefault();
+            isSignUp = !isSignUp;
+            document.querySelector('h1').textContent = isSignUp ? 'Create Account' : 'Welcome Back';
+            document.querySelector('.subtitle').textContent = isSignUp ? 'Join Boltoog AI today' : 'Log in to your Boltoog AI account';
+            loginBtn.textContent = isSignUp ? 'Sign Up' : 'Sign In';
+            footerText.innerHTML = isSignUp 
+                ? 'Already have an account? <a href="#">Sign in</a>' 
+                : "Don't have an account? <a href=\"#\">Sign up for free</a>";
+            
+            // Re-bind listener
+            footerText.querySelector('a').addEventListener('click', arguments.callee);
+        });
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+                alert("Please configure SUPABASE_URL and SUPABASE_ANON_KEY in login.html");
+                return;
+            }
+
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
 
-            // Simple mock authentication
-            if (email && password.length >= 6) {
-                loginSuccess(email);
-            } else {
+            loginBtn.disabled = true;
+            loginBtn.textContent = isSignUp ? 'Creating account...' : 'Signing in...';
+
+            try {
+                let result;
+                if (isSignUp) {
+                    result = await supabaseClient.auth.signUp({ email, password });
+                } else {
+                    result = await supabaseClient.auth.signInWithPassword({ email, password });
+                }
+
+                if (result.error) {
+                    errorMsg.textContent = result.error.message;
+                    errorMsg.style.display = 'block';
+                    setTimeout(() => { errorMsg.style.display = 'none'; }, 5000);
+                } else {
+                    if (isSignUp && !result.data.session) {
+                        alert("Check your email for confirmation!");
+                    } else if (result.data.session) {
+                        // Success
+                        localStorage.setItem('boltoog_session', JSON.stringify(result.data.session));
+                        window.location.href = '/';
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+                errorMsg.textContent = "An unexpected error occurred.";
                 errorMsg.style.display = 'block';
-                setTimeout(() => { errorMsg.style.display = 'none'; }, 3000);
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = isSignUp ? 'Sign Up' : 'Sign In';
             }
         });
 
-        function mockSocialLogin(provider) {
-            console.log(`Logging in with ${provider}...`);
-            loginSuccess(`${provider.toLowerCase()}User@example.com`);
-        }
-
-        function loginSuccess(email) {
-            const session = {
-                user: email,
-                token: 'mock-jwt-' + Math.random().toString(36).substr(2),
-                expires: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
-            };
-            localStorage.setItem('boltoog_session', JSON.stringify(session));
-            
-            // Show success state briefly
-            document.querySelector('.btn-primary').innerHTML = 'Signing in...';
-            document.querySelector('.btn-primary').style.opacity = '0.7';
-            
-            setTimeout(() => {
-                window.location.href = '/';
-            }, 800);
+        async function mockSocialLogin(provider) {
+            alert("Social login requires Supabase Dashboard configuration.");
         }
 
         // Redirect if already logged in
-        if (localStorage.getItem('boltoog_session')) {
-            window.location.href = '/';
-        }
+        supabaseClient.auth.getSession().then(({ data: { session } }) => {
+            if (session) {
+                localStorage.setItem('boltoog_session', JSON.stringify(session));
+                window.location.href = '/';
+            }
+        });
     </script>
 </body>
 </html>
