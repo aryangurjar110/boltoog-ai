@@ -29,7 +29,7 @@ app.post('/chat', async (req, res) => {
             systemInstruction: "You are Boltoog, a helpful AI created by Aryan. Plain text only."
         });
 
-        const result = await model.generateContent(message);
+        const response = result.response;
         const response = result.response;
         
         // Check if response exists and has text
