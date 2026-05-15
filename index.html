@@ -368,7 +368,14 @@
     // Prevent send button from stealing focus (which closes keyboard)
     sendBtn.addEventListener('mousedown', e => e.preventDefault());
     sendBtn.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
-    sendBtn.addEventListener('click', () => { if (!loading) send(); });
+    sendBtn.addEventListener('touchend', e => {
+      e.preventDefault();
+      if (!loading && msgInput.value.trim()) send();
+    });
+    sendBtn.addEventListener('click', e => {
+      e.preventDefault();
+      if (!loading && msgInput.value.trim()) send();
+    });
 
     // SUGGESTIONS
     function bindSuggestions(container) {
