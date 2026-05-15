@@ -32,19 +32,22 @@
     }
     * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 
-    html { height:100%; overflow:hidden; }
+    html { height:100%; overflow:hidden; touch-action:none; }
     body {
       height:100%; overflow:hidden;
       background:var(--bg); color:var(--text);
       font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
       -webkit-font-smoothing:antialiased;
+      position:fixed; width:100%; top:0; left:0;
+      touch-action:none; overscroll-behavior:none;
     }
 
     /* === MAIN LAYOUT: simple flex column, height set by JS === */
     #app {
       display:flex; flex-direction:column;
-      height:100vh; /* fallback, JS overrides */
+      height:100vh;
       overflow:hidden;
+      touch-action:none;
     }
 
     /* === AMBIENT BG === */
@@ -69,6 +72,7 @@
       background:var(--glass);
       backdrop-filter:blur(40px); -webkit-backdrop-filter:blur(40px);
       border-bottom:1px solid var(--border);
+      touch-action:none; user-select:none;
     }
     .header-left { display:flex; align-items:center; gap:12px; }
     .logo {
@@ -115,6 +119,8 @@
       display:flex; flex-direction:column; gap:6px;
       -webkit-overflow-scrolling:touch;
       position:relative; z-index:1;
+      touch-action:pan-y;
+      overscroll-behavior-y:contain;
     }
     .chat-area::-webkit-scrollbar { width:0; }
 
@@ -214,6 +220,7 @@
       backdrop-filter:blur(40px); -webkit-backdrop-filter:blur(40px);
       border-top:1px solid var(--border);
       position:relative; z-index:100;
+      touch-action:none; user-select:none;
     }
     .input-wrapper {
       max-width:680px; margin:0 auto;
