@@ -1,425 +1,158 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login | Boltoog AI</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg: #09090b;
-            --surface: rgba(24, 24, 27, 0.7);
-            --accent: #a78bfa;
-            --accent-glow: rgba(167, 139, 250, 0.2);
-            --accent-deep: #7c3aed;
-            --text: #fafafa;
-            --text-secondary: #a1a1aa;
-            --border: rgba(255, 255, 255, 0.1);
-            --radius: 24px;
-            --ease: cubic-bezier(0.16, 1, 0.3, 1);
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Boltoog AI | Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #030303;
+  --card: rgba(20, 20, 22, 0.8);
+  --border: rgba(255, 255, 255, 0.08);
+  --accent: #a78bfa;
+  --text: #ffffff;
+  --sub: #a1a1aa;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { 
+  background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif;
+  height: 100dvh; display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.ambient {
+  position: fixed; inset: 0; z-index: -1;
+  background: radial-gradient(circle at 50% 50%, rgba(109, 40, 217, 0.15), transparent 70%);
+}
+.card {
+  width: 90%; max-width: 380px; background: var(--card); backdrop-filter: blur(40px);
+  border: 1px solid var(--border); border-radius: 28px; padding: 30px;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 20px;
+}
+.logo { width: 50px; height: 50px; background: var(--accent); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 24px; margin: 0 auto; box-shadow: 0 0 20px rgba(167, 139, 250, 0.3); }
+.header { text-align: center; }
+.header h1 { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+.header p { color: var(--sub); font-size: 14px; }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Inter', sans-serif;
-        }
+form { display: flex; flex-direction: column; gap: 15px; }
+.group { display: flex; flex-direction: column; gap: 6px; }
+.label { font-size: 13px; font-weight: 600; color: var(--sub); margin-left: 4px; }
+input { 
+  background: rgba(255,255,255,0.03); border: 1px solid var(--border); 
+  border-radius: 14px; padding: 12px 16px; color: #fff; font-size: 15px; outline: none;
+  transition: 0.2s;
+}
+input:focus { border-color: var(--accent); background: rgba(255,255,255,0.06); }
+.btn { 
+  background: var(--accent); color: #000; border: none; border-radius: 14px; 
+  padding: 14px; font-size: 15px; font-weight: 700; cursor: pointer; transition: 0.2s;
+  margin-top: 5px;
+}
+.btn:active { transform: scale(0.98); }
 
-        body {
-            background-color: var(--bg);
-            background-image: url('login-bg.png');
-            background-size: cover;
-            background-position: center;
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--text);
-            overflow: hidden;
-        }
+.footer { text-align: center; font-size: 13px; color: var(--sub); margin-top: 5px; }
+.footer a { color: var(--accent); text-decoration: none; font-weight: 600; }
 
-        body::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: radial-gradient(circle at center, transparent 0%, var(--bg) 100%);
-            opacity: 0.8;
-            z-index: 0;
-        }
+.skip-btn {
+  background: none; border: 1px solid var(--border); color: var(--sub);
+  border-radius: 14px; padding: 12px; font-size: 13px; cursor: pointer;
+  transition: 0.2s;
+}
+.skip-btn:hover { background: rgba(255,255,255,0.05); color: #fff; }
 
-        .login-container {
-            position: relative;
-            z-index: 1;
-            width: 100%;
-            max-width: 420px;
-            padding: 20px;
-            animation: fadeIn 0.8s var(--ease);
-        }
-
-        .login-card {
-            background: var(--surface);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 40px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-            text-align: center;
-        }
-
-        .logo {
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            margin: 0 auto 24px;
-            box-shadow: 0 8px 24px rgba(124, 58, 237, 0.4);
-        }
-
-        h1 {
-            font-size: 24px;
-            font-weight: 700;
-            margin-bottom: 8px;
-            letter-spacing: -0.5px;
-        }
-
-        p.subtitle {
-            color: var(--text-secondary);
-            font-size: 14px;
-            margin-bottom: 32px;
-        }
-
-        .input-group {
-            text-align: left;
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            margin-bottom: 8px;
-            margin-left: 4px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        input {
-            width: 100%;
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 12px 16px;
-            color: white;
-            font-size: 15px;
-            transition: all 0.3s var(--ease);
-        }
-
-        input:focus {
-            outline: none;
-            border-color: var(--accent);
-            background: rgba(0, 0, 0, 0.5);
-            box-shadow: 0 0 0 4px var(--accent-glow);
-        }
-
-        .btn {
-            width: 100%;
-            padding: 14px;
-            border-radius: 12px;
-            border: none;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s var(--ease);
-            margin-top: 10px;
-        }
-
-        .btn-primary {
-            background: var(--accent-deep);
-            color: white;
-            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
-        }
-
-        .btn-primary:hover {
-            background: var(--accent);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
-        }
-
-        .btn-primary:active {
-            transform: translateY(0);
-        }
-
-        .divider {
-            margin: 24px 0;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            color: var(--text-secondary);
-            font-size: 12px;
-        }
-
-        .divider::before, .divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: var(--border);
-        }
-
-        .social-btns {
-            display: flex;
-            gap: 12px;
-        }
-
-        .btn-social {
-            flex: 1;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border);
-            color: var(--text);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            font-size: 14px;
-        }
-
-        .btn-social:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: var(--text-secondary);
-        }
-
-        .footer-text {
-            margin-top: 24px;
-            font-size: 13px;
-            color: var(--text-secondary);
-        }
-
-        .footer-text a {
-            color: var(--accent);
-            text-decoration: none;
-            font-weight: 500;
-        }
-
-        .footer-text a:hover {
-            text-decoration: underline;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Error state */
-        .error-msg {
-            color: #ef4444;
-            font-size: 13px;
-            margin-top: 8px;
-            display: none;
-        }
-    </style>
+#error { color: #f87171; font-size: 12px; text-align: center; display: none; }
+</style>
 </head>
 <body>
-    <div class="login-container">
-        <div class="login-card">
-            <div class="logo">⚡</div>
-            <h1 id="mainTitle">Create Account</h1>
-            <p class="subtitle" id="mainSubtitle">Join Boltoog AI today</p>
 
-            <form id="loginForm">
-                <div class="input-group" id="nameGroup">
-                    <label for="fullName">Full Name</label>
-                    <input type="text" id="fullName" placeholder="Aryan Gurjar" required>
-                </div>
-                <div class="input-group">
-                    <label for="email">Email Address</label>
-                    <input type="email" id="email" placeholder="name@example.com" required>
-                </div>
-                <div class="input-group">
-                    <label for="password">Password</label>
-                    <div style="position: relative;">
-                        <input type="password" id="password" placeholder="••••••••" required style="padding-right: 44px;">
-                        <button type="button" id="togglePassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center;">
-                            <svg id="eyeIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                <circle cx="12" cy="12" r="3"></circle>
-                <div class="input-group">
-                    <label class="label">Email Address</label>
-                    <input type="email" id="email" class="input" placeholder="name@company.com" required>
-                </div>
+<div class="ambient"></div>
 
-                <div class="input-group">
-                    <label class="label">Password</label>
-                    <input type="password" id="password" class="input" placeholder="••••••••" required>
-                </div>
+<div class="card">
+  <div class="logo">⚡</div>
+  <div class="header">
+    <h1 id="title">Welcome</h1>
+    <p id="subtitle">Sign in to Boltoog AI</p>
+  </div>
 
-                <button type="submit" class="btn" id="submitBtn">Sign In</button>
-            </form>
+  <div id="error"></div>
 
-            <p class="footer-text" id="footerText" style="margin-top: 15px;">
-                Already have an account? <a href="#" id="modeToggle">Sign in</a>
-            </p>
-
-            <div style="margin-top: 20px; padding-bottom: calc(10px + env(safe-area-inset-bottom));">
-                <button type="button" id="skipBtn" style="background:none; border:1px solid var(--border); color:var(--text-secondary); padding:10px 20px; border-radius:12px; font-size:13px; cursor:pointer; width:100%;">
-                    Skip login (Chat will not be saved)
-                </button>
-            </div>
-        </div>
+  <form id="authForm">
+    <div class="group">
+      <label class="label">Email</label>
+      <input type="email" id="email" placeholder="you@example.com" required>
     </div>
+    <div class="group">
+      <label class="label">Password</label>
+      <input type="password" id="password" placeholder="••••••••" required>
+    </div>
+    <button type="submit" class="btn" id="mainBtn">Sign In</button>
+  </form>
+
+  <div class="footer">
+    <span id="footerText">No account?</span> <a href="#" id="toggle">Create one</a>
+  </div>
+
+  <button class="skip-btn" id="skip">Skip login (Guest Mode)</button>
 </div>
-    </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
-        // === CONFIGURATION ===
-        const SUPABASE_URL = 'https://tbdcwlwxqsfogrgyxjwx.supabase.co'; 
-        const SUPABASE_ANON_KEY = 'sb_publishable_il30olEoujJPa6BLrnV-bw_Jr6GruEs';
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const S_URL = 'https://tbdcwlwxqsfogrgyxjwx.supabase.co';
+const S_KEY = 'sb_publishable_il30olEoujJPa6BLrnV-bw_Jr6GruEs';
+const sc = supabase.createClient(S_URL, S_KEY);
 
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let isLogin = true;
+const form = document.getElementById('authForm');
+const toggle = document.getElementById('toggle');
+const title = document.getElementById('title');
+const subtitle = document.getElementById('subtitle');
+const mainBtn = document.getElementById('mainBtn');
+const footerText = document.getElementById('footerText');
+const error = document.getElementById('error');
 
-        const passwordInput = document.getElementById('password');
-        const togglePassword = document.getElementById('togglePassword');
-        const eyeIcon = document.getElementById('eyeIcon');
+toggle.onclick = (e) => {
+  e.preventDefault();
+  isLogin = !isLogin;
+  title.textContent = isLogin ? 'Welcome' : 'Join Us';
+  subtitle.textContent = isLogin ? 'Sign in to Boltoog AI' : 'Start your journey';
+  mainBtn.textContent = isLogin ? 'Sign In' : 'Create Account';
+  footerText.textContent = isLogin ? 'No account?' : 'Have an account?';
+  toggle.textContent = isLogin ? 'Create one' : 'Sign in';
+  error.style.display = 'none';
+};
 
-        togglePassword.addEventListener('click', () => {
-            const isPassword = passwordInput.type === 'password';
-            passwordInput.type = isPassword ? 'text' : 'password';
-            eyeIcon.innerHTML = isPassword 
-                ? '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>'
-                : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
-        });
-        const loginForm = document.getElementById('loginForm');
-        const errorMsg = document.getElementById('errorMsg');
-        const loginBtn = document.getElementById('loginBtn');
-        const footerText = document.getElementById('footerText');
-        const nameGroup = document.getElementById('nameGroup');
-        const fullNameInput = document.getElementById('fullName');
-        const mainTitle = document.getElementById('mainTitle');
-        const mainSubtitle = document.getElementById('mainSubtitle');
-        
-        let isSignUp = true; // Default to Sign Up
+form.onsubmit = async (e) => {
+  e.preventDefault();
+  mainBtn.disabled = true;
+  mainBtn.textContent = 'Processing...';
+  error.style.display = 'none';
 
-        // Toggle Sign Up / Sign In
-        footerText.addEventListener('click', (e) => {
-            if (e.target.id === 'modeToggle') {
-                e.preventDefault();
-                isSignUp = !isSignUp;
-                mainTitle.textContent = isSignUp ? 'Create Account' : 'Welcome Back';
-                mainSubtitle.textContent = isSignUp ? 'Join Boltoog AI today' : 'Log in to your Boltoog AI account';
-                loginBtn.textContent = isSignUp ? 'Sign Up' : 'Sign In';
-                nameGroup.style.display = isSignUp ? 'block' : 'none';
-                fullNameInput.required = isSignUp;
-                footerText.innerHTML = isSignUp 
-                    ? 'Already have an account? <a href="#" id="modeToggle">Sign in</a>' 
-                    : "Don't have an account? <a href=\"#\" id=\"modeToggle\">Sign up for free</a>";
-            }
-        });
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
 
-        function showSuccessToast(message) {
-            const toast = document.createElement('div');
-            toast.style.cssText = `
-                position: fixed; top: 20px; right: 20px;
-                background: linear-gradient(135deg, #7c3aed, #6d28d9);
-                color: white; padding: 16px 24px; border-radius: 12px;
-                box-shadow: 0 10px 30px rgba(124, 58, 237, 0.4);
-                z-index: 9999; animation: slideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-                font-weight: 600; font-size: 14px;
-            `;
-            toast.textContent = message;
-            document.body.appendChild(toast);
-            
-            // Add keyframes if not exists
-            if (!document.getElementById('toastStyles')) {
-                const style = document.createElement('style');
-                style.id = 'toastStyles';
-                style.textContent = `@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }`;
-                document.head.appendChild(style);
-            }
+  const { data, error: err } = isLogin 
+    ? await sc.auth.signInWithPassword({ email, password })
+    : await sc.auth.signUp({ email, password });
 
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                toast.style.transform = 'translateY(-20px)';
-                toast.style.transition = 'all 0.5s ease';
-                setTimeout(() => toast.remove(), 500);
-            }, 3000);
-        }
+  if (err) {
+    error.textContent = err.message;
+    error.style.display = 'block';
+    mainBtn.disabled = false;
+    mainBtn.textContent = isLogin ? 'Sign In' : 'Create Account';
+  } else {
+    localStorage.removeItem('boltoog_guest');
+    window.location.href = '/';
+  }
+};
 
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const fullName = fullNameInput.value;
+document.getElementById('skip').onclick = () => {
+  localStorage.setItem('boltoog_guest', 'true');
+  window.location.href = '/';
+};
 
-            loginBtn.disabled = true;
-            loginBtn.textContent = isSignUp ? 'Creating account...' : 'Signing in...';
-
-            try {
-                let result;
-                if (isSignUp) {
-                    result = await supabaseClient.auth.signUp({ 
-                        email, 
-                        password,
-                        options: { data: { full_name: fullName } }
-                    });
-                } else {
-                    result = await supabaseClient.auth.signInWithPassword({ email, password });
-                }
-
-                if (result.error) {
-                    errorMsg.textContent = result.error.message;
-                    errorMsg.style.display = 'block';
-                } else {
-                    if (isSignUp && !result.data.session) {
-                        showSuccessToast("Success! Check your email to confirm.");
-                    } else if (result.data.session) {
-                        const name = result.data.user.user_metadata.full_name || "there";
-                        showSuccessToast(`Welcome back, ${name}!`);
-                        localStorage.setItem('boltoog_session', JSON.stringify(result.data.session));
-                        setTimeout(() => { window.location.href = '/'; }, 1500);
-                    }
-                }
-            } catch (err) {
-                console.error(err);
-                errorMsg.textContent = "An error occurred.";
-                errorMsg.style.display = 'block';
-            } finally {
-                loginBtn.disabled = false;
-                loginBtn.textContent = isSignUp ? 'Sign Up' : 'Sign In';
-            }
-        });
-
-        // Listen for Auth changes (handles redirects after email confirmation)
-        supabaseClient.auth.onAuthStateChange((event, session) => {
-            if (session) {
-                localStorage.setItem('boltoog_session', JSON.stringify(session));
-                const name = session.user.user_metadata.full_name || "there";
-                showSuccessToast(`Welcome back, ${name}!`);
-                setTimeout(() => { window.location.href = '/'; }, 1500);
-            }
-        });
-
-        document.getElementById('skipBtn').onclick = () => {
-            localStorage.setItem('boltoog_guest', 'true');
-            localStorage.removeItem('boltoog_session');
-            window.location.href = '/';
-        };
-
-        // Initial session check
-        supabaseClient.auth.getSession().then(({ data: { session } }) => {
-            if (session && !window.location.hash) {
-                localStorage.setItem('boltoog_session', JSON.stringify(session));
-                localStorage.removeItem('boltoog_guest');
-                window.location.href = '/';
-            }
-        });
-    </script>
+sc.auth.getSession().then(({ data: { session } }) => {
+  if (session) window.location.href = '/';
+});
+</script>
 </body>
 </html>
