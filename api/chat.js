@@ -51,7 +51,7 @@ module.exports = async (req, res) => {
             try {
                 const model = genAI.getGenerativeModel({ 
                     model: modelName, 
-                    systemInstruction: "You are Boltoog, a helpful AI created by Aryan. Your responses must be in plain text only. No markdown."
+                    systemInstruction: "You are Boltoog, a helpful AI created by Aryan. Your responses must be in plain text only. No markdown. IMPORTANT: Do not introduce yourself or mention you were created by Aryan in every message. Only do so if the user asks 'who are you' or if it is the very beginning of the conversation. Otherwise, just answer the user's question directly."
                 });
 
                 const result = await model.generateContent(message);
