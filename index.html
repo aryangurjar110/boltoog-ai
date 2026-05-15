@@ -303,19 +303,35 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    // === AUTH CHECK ===
-    const sessionData = localStorage.getItem('boltoog_session');
-    let session = null;
-    try {
-      session = sessionData ? JSON.parse(sessionData) : null;
-    } catch(e) { session = null; }
+    // === CONFIGURATION ===
+    const SUPABASE_URL = 'https://tbdcwlwxqsfogrgyxjwx.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_il30olEoujJPa6BLrnV-bw_Jr6GruEs';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    if (!session || !session.access_token) {
-      localStorage.removeItem('boltoog_session');
-      if (window.location.pathname !== '/login') {
+    let session = null;
+
+    async function checkAuth() {
+      const { data: { session: currentSession } } = await supabaseClient.auth.getSession();
+      if (!currentSession) {
+        localStorage.removeItem('boltoog_session');
         window.location.href = '/login';
+        return;
       }
+      session = currentSession;
+      localStorage.setItem('boltoog_session', JSON.stringify(session));
     }
+    
+    // Run auth check immediately
+    checkAuth();
+
+    async function signOut() {
+      await supabaseClient.auth.signOut();
+      localStorage.removeItem('boltoog_session');
+      window.location.href = '/login';
+    }
+
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) logoutBtn.onclick = signOut;
 
     const chatArea = document.getElementById('chatArea');
     const historyList = document.getElementById('historyList');
