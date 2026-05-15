@@ -86,11 +86,10 @@ Write in plain text only - absolutely no markdown, no asterisks, no bullet symbo
 
   // Try all versions and all models
   const models = [
-    { v: 'v1beta', m: 'gemini-1.5-flash-latest' },
-    { v: 'v1beta', m: 'gemini-2.0-flash-lite-preview-02-05' },
-    { v: 'v1', m: 'gemini-1.5-flash' },
-    { v: 'v1beta', m: 'gemini-1.5-flash' },
-    { v: 'v1beta', m: 'gemini-1.0-pro' }
+    { v: 'v1beta', m: 'gemini-3.1-flash-lite' },
+    { v: 'v1beta', m: 'gemini-2.5-flash' },
+    { v: 'v1beta', m: 'gemini-2.0-flash' },
+    { v: 'v1beta', m: 'gemini-flash-latest' }
   ];
 
   let responseText = '';
