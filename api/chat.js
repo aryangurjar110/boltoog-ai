@@ -68,17 +68,18 @@ module.exports = async (req, res) => {
 
   if (!message) return res.status(400).json({ error: 'Message is required' });
 
-  // 1. FAST SAVING: Create chat/message entry IMMEDIATELY before AI call
+  // 1. FAST SAVING: Create chat entry
   let activeChatId = chatId;
   try {
     if (!activeChatId) {
-      const { data: newChat } = await supabase
+      const { data: newChat, error: chatErr } = await supabase
         .from('chats')
         .insert([{ user_id: user.id, title: message.substring(0, 40) }])
-        .select().single();
-      if (newChat) activeChatId = newChat.id;
+        .select();
+      if (chatErr) throw chatErr;
+      if (newChat && newChat[0]) activeChatId = newChat[0].id;
     }
-  } catch (dbErr) { console.error('Initial DB error:', dbErr.message); }
+  } catch (dbErr) { console.error('DB Chat Create Error:', dbErr.message); }
 
   const systemPrompt = `You are Boltoog, a smart and friendly AI assistant created by Aryan.
 Be helpful, concise, and warm. Give thoughtful answers.
@@ -159,14 +160,14 @@ Write in plain text only - absolutely no markdown, no asterisks, no bullet symbo
 
   const clean = responseText.replace(/\*\*/g, '').replace(/\*/g, '').replace(/#{1,6} /g, '').replace(/`/g, '').trim();
 
-  // 2. SAVE RESPONSE: Store model response in DB
+  // 2. SAVE RESPONSE: Store messages
   if (activeChatId && responseText) {
     try {
       await supabase.from('messages').insert([
         { chat_id: activeChatId, role: 'user', content: message },
         { chat_id: activeChatId, role: 'model', content: clean }
       ]);
-    } catch (dbErr) { console.error('Secondary DB error:', dbErr.message); }
+    } catch (dbErr) { console.error('Message Save Error:', dbErr.message); }
   }
 
   res.status(200).json({ response: clean, chatId: activeChatId });
