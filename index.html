@@ -335,21 +335,19 @@
     setAppHeight();
 
     if (window.visualViewport) {
+      let resizeTimer;
       window.visualViewport.addEventListener('resize', () => {
-        setAppHeight();
-        scrollToBottom();
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+          setAppHeight();
+          scrollToBottom();
+        }, 50);
       });
-      // Prevent iOS from scrolling the page itself
       window.visualViewport.addEventListener('scroll', () => {
         window.scrollTo(0, 0);
       });
     }
     window.addEventListener('resize', setAppHeight);
-
-    // Keep keyboard open after send: re-focus after a tiny delay
-    function keepKeyboardOpen() {
-      setTimeout(() => msgInput.focus(), 10);
-    }
 
     // =============================================
     // AUTO-RESIZE TEXTAREA
@@ -367,6 +365,9 @@
         if (msgInput.value.trim() && !loading) send();
       }
     });
+    // Prevent send button from stealing focus (which closes keyboard)
+    sendBtn.addEventListener('mousedown', e => e.preventDefault());
+    sendBtn.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
     sendBtn.addEventListener('click', () => { if (!loading) send(); });
 
     // SUGGESTIONS
@@ -417,9 +418,6 @@
       sendBtn.classList.remove('active');
       loading = true;
 
-      // Keep keyboard open on mobile
-      keepKeyboardOpen();
-
       const typingEl = showTyping();
 
       try {
@@ -444,7 +442,6 @@
       } finally {
         loading = false;
         scrollToBottom();
-        keepKeyboardOpen();
       }
     }
 
