@@ -177,11 +177,22 @@ if (window.visualViewport) {
 }
 
 async function init() {
+  const isGuest = localStorage.getItem('boltoog_guest') === 'true';
   const { data } = await sbClient.auth.getSession();
-  if (!data.session) { window.location.href = '/login'; return; }
-  session = data.session;
-  document.getElementById('userName').textContent = session.user.user_metadata.full_name || 'User';
-  await loadHistory();
+  
+  if (!data.session && !isGuest) { window.location.href = '/login'; return; }
+  
+  if (isGuest) {
+    session = { access_token: 'guest' };
+    document.getElementById('userName').textContent = 'Guest User';
+    document.getElementById('welcome').innerHTML += '<p style="color:#ef4444; font-size:12px; margin-top:10px;">⚠️ Guest Mode: Conversations will NOT be saved.</p>';
+    sbList.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted);font-size:13px">Login to save history</div>';
+  } else {
+    session = data.session;
+    document.getElementById('userName').textContent = session.user.user_metadata.full_name || 'User';
+    await loadHistory();
+  }
+  
   setTimeout(() => document.getElementById('splash').style.display = 'none', 800);
 }
 
@@ -272,7 +283,12 @@ function showTyping() {
 
 function scrollDown() { chatEl.scrollTop = chatEl.scrollHeight; }
 
-async function logout() { await sbClient.auth.signOut(); window.location.href = '/login'; }
+async function logout() { 
+  localStorage.removeItem('boltoog_guest');
+  localStorage.removeItem('boltoog_session');
+  await sbClient.auth.signOut(); 
+  window.location.href = '/login'; 
+}
 
 async function send() {
   const val = msgEl.value.trim();

@@ -58,8 +58,15 @@ module.exports = async (req, res) => {
   const authHeader = req.headers.authorization;
   if (!authHeader) return res.status(401).json({ error: 'Unauthorized: Missing Authorization header' });
   const token = authHeader.replace('Bearer ', '');
-  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-  if (authError || !user) return res.status(401).json({ error: 'Unauthorized: Invalid or expired session' });
+  
+  let user = null;
+  let isGuest = (token === 'guest');
+
+  if (!isGuest) {
+    const { data: { user: supabaseUser }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !supabaseUser) return res.status(401).json({ error: 'Unauthorized: Invalid session' });
+    user = supabaseUser;
+  }
 
   // IMPORTANT: Key must be set in Vercel Environment Variables as GEMINI_API_KEY
   const KEY = process.env.GEMINI_API_KEY;
@@ -68,22 +75,24 @@ module.exports = async (req, res) => {
 
   if (!message) return res.status(400).json({ error: 'Message is required' });
 
-  // 1. FAST SAVING: Create chat entry
+  // 1. FAST SAVING: Create chat entry (Skip if Guest)
   let activeChatId = chatId;
-  try {
-    if (!activeChatId) {
-      const { data: newChat, error: chatErr } = await supabase
-        .from('chats')
-        .insert([{ user_id: user.id, title: message.substring(0, 40) }])
-        .select();
-      if (chatErr) throw chatErr;
-      if (newChat && newChat[0]) activeChatId = newChat[0].id;
-    }
-  } catch (dbErr) { console.error('DB Chat Create Error:', dbErr.message); }
+  if (!isGuest) {
+    try {
+      if (!activeChatId) {
+        const { data: newChat, error: chatErr } = await supabase
+          .from('chats')
+          .insert([{ user_id: user.id, title: message.substring(0, 40) }])
+          .select();
+        if (chatErr) throw chatErr;
+        if (newChat && newChat[0]) activeChatId = newChat[0].id;
+      }
+    } catch (dbErr) { console.error('DB Chat Create Error:', dbErr.message); }
+  }
 
   const systemPrompt = `You are Boltoog, a smart and friendly AI assistant created by Aryan.
 Be helpful, concise, and warm. Give thoughtful answers.
-Write in plain text only - absolutely no markdown, no asterisks, no bullet symbols, no hashtags.`;
+Write in plain text only - absolutely no markdown.`;
 
   // Try all versions and all models
   const models = [
@@ -160,8 +169,8 @@ Write in plain text only - absolutely no markdown, no asterisks, no bullet symbo
 
   const clean = responseText.replace(/\*\*/g, '').replace(/\*/g, '').replace(/#{1,6} /g, '').replace(/`/g, '').trim();
 
-  // 2. SAVE RESPONSE: Store messages
-  if (activeChatId && responseText) {
+  // 2. SAVE RESPONSE: Store messages (Skip if Guest)
+  if (!isGuest && activeChatId && responseText) {
     try {
       await supabase.from('messages').insert([
         { chat_id: activeChatId, role: 'user', content: message },

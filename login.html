@@ -264,6 +264,12 @@
                 Already have an account? <a href="#" id="modeToggle">Sign in</a>
             </p>
 
+            <div style="margin-top: 30px;">
+                <button type="button" id="skipBtn" style="background:none; border:1px solid var(--border); color:var(--text-secondary); padding:10px 20px; border-radius:12px; font-size:13px; cursor:pointer; width:100%;">
+                    Skip login (Chat will not be saved)
+                </button>
+            </div>
+
         </div>
     </div>
 
@@ -396,10 +402,17 @@
             }
         });
 
+        document.getElementById('skipBtn').onclick = () => {
+            localStorage.setItem('boltoog_guest', 'true');
+            localStorage.removeItem('boltoog_session');
+            window.location.href = '/';
+        };
+
         // Initial session check
         supabaseClient.auth.getSession().then(({ data: { session } }) => {
             if (session && !window.location.hash) {
                 localStorage.setItem('boltoog_session', JSON.stringify(session));
+                localStorage.removeItem('boltoog_guest');
                 window.location.href = '/';
             }
         });
