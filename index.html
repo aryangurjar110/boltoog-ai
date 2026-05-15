@@ -224,15 +224,31 @@ const overlay = document.getElementById('overlay');
 const splash = document.getElementById('splash');
 
 async function init() {
-  const { data } = await supabaseClient.auth.getSession();
-  if (data.session) {
-    session = data.session;
-    await loadHistory();
-  } else {
+  try {
+    const { data } = await supabaseClient.auth.getSession();
+    if (data.session) {
+      session = data.session;
+      await loadHistory();
+    } else {
+      window.location.href = '/login';
+      return;
+    }
+  } catch (e) {
+    console.error('Init error:', e);
     window.location.href = '/login';
-    return;
+  } finally {
+    splash.style.display = 'none';
   }
-  splash.style.display = 'none';
+}
+
+async function handleApiError(r, d) {
+  if (r.status === 401) {
+    alert('Session expired. Please log in again.');
+    await supabaseClient.auth.signOut();
+    window.location.href = '/login';
+    return true;
+  }
+  return false;
 }
 
 async function loadHistory() {
@@ -309,6 +325,9 @@ async function send() {
     });
     const d = await r.json();
     dot.remove();
+    
+    if (await handleApiError(r, d)) return;
+
     if (d.response) {
       addMsg('ai', d.response);
       chatHistory.push({ role: 'user', parts: [{ text: val }] });
