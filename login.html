@@ -386,9 +386,19 @@
             }
         });
 
-        // Redirect if already logged in
-        supabaseClient.auth.getSession().then(({ data: { session } }) => {
+        // Listen for Auth changes (handles redirects after email confirmation)
+        supabaseClient.auth.onAuthStateChange((event, session) => {
             if (session) {
+                localStorage.setItem('boltoog_session', JSON.stringify(session));
+                const name = session.user.user_metadata.full_name || "there";
+                showSuccessToast(`Welcome back, ${name}!`);
+                setTimeout(() => { window.location.href = '/'; }, 1500);
+            }
+        });
+
+        // Initial session check
+        supabaseClient.auth.getSession().then(({ data: { session } }) => {
+            if (session && !window.location.hash) {
                 localStorage.setItem('boltoog_session', JSON.stringify(session));
                 window.location.href = '/';
             }
