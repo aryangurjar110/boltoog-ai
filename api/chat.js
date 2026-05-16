@@ -37,14 +37,11 @@ module.exports = async (req, res) => {
   let allErrors = [];
 
   // Try the most stable models in order
-  const models = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-1.0-pro'];
+  const models = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro'];
 
   for (const modelName of models) {
     try {
-      const model = genAI.getGenerativeModel({
-        model: modelName,
-        systemInstruction: modelName.includes('1.5') ? "You are Boltoog, a friendly AI. Answer in plain text." : undefined,
-      }, { apiVersion: 'v1' });
+      const model = genAI.getGenerativeModel({ model: modelName });
 
       // Format history for SDK
       const formattedHistory = [];
@@ -57,11 +54,7 @@ module.exports = async (req, res) => {
         });
       }
 
-      // If model is 1.0, we prepend the instruction to the last message because it doesn't support systemInstruction
-      let finalMessage = message;
-      if (!modelName.includes('1.5')) {
-        finalMessage = `You are Boltoog, a friendly AI. Answer in plain text.\n\nUser: ${message}`;
-      }
+      let finalMessage = `You are Boltoog, a friendly AI. Answer in plain text.\n\nUser: ${message}`;
 
       const chat = model.startChat({
         history: formattedHistory,
