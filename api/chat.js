@@ -44,21 +44,14 @@ module.exports = async (req, res) => {
           parts: h.parts
         }));
       }
-      contents.push({ role: 'user', parts: [{ text: message }] });
+      contents.push({ role: 'user', parts: [{ text: `You are Boltoog, a friendly AI. Answer in plain text.\n\nUser: ${message}` }] });
 
       const payload = {
-        systemInstruction: m.includes('1.5') ? { parts: [{ text: 'You are Boltoog, a friendly AI. Answer in plain text.' }] } : undefined,
         contents,
         generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
       };
 
-      if (!m.includes('1.5')) {
-        // Fallback for models that don't support systemInstruction
-        contents[contents.length - 1].parts[0].text = `You are Boltoog, a friendly AI. Answer in plain text.\n\nUser: ${message}`;
-        delete payload.systemInstruction;
-      }
-
-      const r = await fetch(`https://generativelanguage.googleapis.com/v1/models/${m}:generateContent?key=${KEY}`, {
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${KEY}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
