@@ -31,17 +31,32 @@ module.exports = async (req, res) => {
   }
 
   // 2. AI Request (Ultra Safe Mode)
-  const models = ['gemini-1.5-flash', 'gemini-pro', 'gemini-1.5-pro'];
+  const models = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-1.0-pro'];
   let aiText = '';
-  let lastErr = '';
+  let allErrors = [];
 
   for (const m of models) {
     try {
-      const prompt = `You are Boltoog, a friendly AI. Answer in plain text.\n\nUser: ${message}`;
+      let contents = [];
+      if (Array.isArray(history)) {
+        contents = history.map(h => ({
+          role: h.role === 'ai' ? 'model' : h.role, // normalize roles
+          parts: h.parts
+        }));
+      }
+      contents.push({ role: 'user', parts: [{ text: message }] });
+
       const payload = {
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        systemInstruction: m.includes('1.5') ? { parts: [{ text: 'You are Boltoog, a friendly AI. Answer in plain text.' }] } : undefined,
+        contents,
         generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
       };
+
+      if (!m.includes('1.5')) {
+        // Fallback for models that don't support systemInstruction
+        contents[contents.length - 1].parts[0].text = `You are Boltoog, a friendly AI. Answer in plain text.\n\nUser: ${message}`;
+        delete payload.systemInstruction;
+      }
 
       const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${KEY}`, {
         method: 'POST',
@@ -52,14 +67,16 @@ module.exports = async (req, res) => {
       const d = await r.json();
       if (d.candidates?.[0]?.content?.parts?.[0]?.text) {
         aiText = d.candidates[0].content.parts[0].text;
-        break;
+        break; // Success
       } else {
-        lastErr = d.error?.message || 'Empty response';
+        allErrors.push(`${m}: ` + (d.error?.message || 'Empty response'));
       }
-    } catch (e) { lastErr = e.message; }
+    } catch (e) { 
+      allErrors.push(`${m}: ` + e.message); 
+    }
   }
 
-  if (!aiText) return res.status(500).json({ error: 'AI_FAILED', details: lastErr });
+  if (!aiText) return res.status(500).json({ error: 'AI_FAILED', details: allErrors.join(' | ') });
 
   const clean = aiText.replace(/\*/g, '').replace(/#/g, '').trim();
 
