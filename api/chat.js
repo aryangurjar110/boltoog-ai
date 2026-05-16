@@ -44,7 +44,7 @@ module.exports = async (req, res) => {
       const model = genAI.getGenerativeModel({
         model: modelName,
         systemInstruction: modelName.includes('1.5') ? "You are Boltoog, a friendly AI. Answer in plain text." : undefined,
-      });
+      }, { apiVersion: 'v1' });
 
       // Format history for SDK
       const formattedHistory = [];
