@@ -58,7 +58,7 @@ module.exports = async (req, res) => {
         delete payload.systemInstruction;
       }
 
-      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${KEY}`, {
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1/models/${m}:generateContent?key=${KEY}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
